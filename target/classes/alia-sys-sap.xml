@@ -572,14 +572,13 @@ payload]]></ee:set-payload>
         <flow-ref doc:name="get-sanctionable-period-implFlow" doc:id="f325ec04-28fe-425f-b8ad-2a719fef7f39" name="get-sanctionable-period-implFlow" />
     </flow>
     <flow name="patch:\installation-tracciabilita\(installationId):application\json:alia-sys-sap-config">
-        <logger level="INFO" doc:name="Logger" doc:id="7f419286-0a0b-47a1-9ffb-1af8c8d837f6" message="Received call patch:\installation-tracciabilita\(installationId)" />
-		<ee:transform>
+        <ee:transform>
             <ee:variables>
                 <ee:set-variable variableName="installationId">attributes.uriParams.'installationId'</ee:set-variable>
             </ee:variables>
         </ee:transform>
         <flow-ref doc:name="update-installation-tracciabilita-implFlow" doc:id="538e3351-aa37-4ef6-a87d-0ccc77c2fad7" name="update-installation-tracciabilita-implFlow" />
-		<error-handler>
+        <error-handler>
             <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9cc4728a-e262-4179-af70-f50b21ceb191">
                 <flow-ref doc:name="manage-errorFlow" doc:id="a7f6743b-1da0-43a1-98fa-f1eb4e3be559" name="manage-errorFlow" />
             </on-error-propagate>
@@ -590,8 +589,7 @@ payload]]></ee:set-payload>
     </flow>
     <flow name="patch:\asset-tag:application\json:alia-sys-sap-config">
         <logger level="INFO" doc:name="Logger" doc:id="aef95286-32e7-4793-9d1e-4825f85319d5" message="PATCH Asset Tag received" />
-        <logger level="INFO" doc:name="Logger" doc:id="75d94759-7e1e-4a41-b54c-2d12c9fb26e3" message="#[payload]"/>
-		<flow-ref doc:name="update-asset-tag-implFlow" doc:id="89190d4b-a202-4755-a32b-0f98e070197a" name="update-asset-tagFlow" />
+        <flow-ref doc:name="update-asset-tag-implFlow" doc:id="89190d4b-a202-4755-a32b-0f98e070197a" name="update-asset-tagFlow" />
         <error-handler>
             <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="65e6653c-4ff8-43fd-9650-2def0a562bc1">
                 <flow-ref doc:name="Flow Reference" doc:id="f3d35f6a-be79-4aae-9893-daaeed73f0a5" name="manage-errorFlow" />

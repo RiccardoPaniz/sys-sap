@@ -9,7 +9,6 @@ http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s
 	
 	<flow name="update-contract-account-implFlow" doc:id="cb98a60a-a89a-44a3-917e-cc3dcfca6d84" >
 		<logger level="INFO" doc:name="Logger" doc:id="a2c04ba8-884e-4f95-9d18-add0181cceb8" message="Updating Contract Account"/>
-		<logger level="INFO" doc:name="Logger" doc:id="03d0bbbb-e3c5-4ddf-b549-ad6369e658dc" message="RequestFromProc: #[payload]"/>
 		<set-variable value="#[payload]" doc:name="Contract Account" doc:id="c6c7cc7f-fefd-44ba-97e7-acecfe080713" variableName="contractAccount"/>
 		<set-variable value="#[null]" doc:name="Account Address" doc:id="4f6defe3-89c3-41fb-afe3-ce91c86f4f66" variableName="accountAddress"/>
 		<flow-ref doc:name="upsert-bank-account-implFlow" doc:id="1631e392-e381-49ee-8c0c-d9500ed74521" name="upsert-bank-account-implFlow"/>
@@ -30,7 +29,6 @@ http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s
 		<ee:transform doc:name="Update Contract Account - Response Transformation" doc:id="14d88e3e-6a99-4db3-bc63-8a33ea011dd2" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0
-import * from dw::core::Strings
 output application/json skipNullOn="everywhere"
 ---
 {
@@ -61,21 +59,7 @@ output application/json skipNullOn="everywhere"
   	if (vars.contractAccount.ALIA_SHIPPING_ADDRESS_ID__c == null) vars.accountAddress.AddressID else vars.contractAccount.ALIA_SHIPPING_ADDRESS_ID__c)
   	if (!isEmpty(vars.accountAddress.AddressID) or !isEmpty(vars.contractAccount.ALIA_SHIPPING_ADDRESS_ID__c)),
 //  ("BankAccountID" : payload.ALIA_BKVID__c) if (!isEmpty(payload.ALIA_BKVID__c))
-    ("InterestKey" : vars.contractAccount.ALIA_INTEREST_KEY__c) if (!isEmpty(vars.contractAccount.ALIA_INTEREST_KEY__c)),
-  ("NomeIntIban": vars.contractAccount.ALIA_NomeIntestatarioIban__c) if (!isEmpty(vars.contractAccount.ALIA_NomeIntestatarioIban__c)),
-  ("CognomeIntIban": vars.contractAccount.ALIA_CognomeIntestatarioIban__c) if (!isEmpty(vars.contractAccount.ALIA_CognomeIntestatarioIban__c)),
-  ("CfIntIban": vars.contractAccount.ALIA_CodiceFiscaleIntestatarioIban__c) if (!isEmpty(vars.contractAccount.ALIA_CodiceFiscaleIntestatarioIban__c)),
-  ("RsocIbanName": vars.contractAccount.ALIA_RagioneSocialeIntestatarioIban__c) if (!isEmpty(vars.contractAccount.ALIA_RagioneSocialeIntestatarioIban__c)),
-  ("TaxNumIban": if (substring(vars.contractAccount.ALIA_PartIvaIntestIban__c, 0, 2) == "IT")
-  	                substringAfter(vars.contractAccount.ALIA_PartIvaIntestIban__c, "IT")
-                 else
-                    vars.contractAccount.ALIA_PartIvaIntestIban__c) if (!isEmpty(vars.contractAccount.ALIA_PartIvaIntestIban__c)),
-  ("EredeIban": if (vars.contractAccount.ALIA_Erede__c==true)
-  					"Si"
-  				 else
-  				 	"No"  	
-  ) if (!isEmpty(vars.contractAccount.ALIA_Erede__c))
-   
+    ("InterestKey" : vars.contractAccount.ALIA_INTEREST_KEY__c) if (!isEmpty(vars.contractAccount.ALIA_INTEREST_KEY__c))
 }
 ]]></ee:set-payload>
 			</ee:message>
@@ -97,7 +81,6 @@ output application/json skipNullOn="everywhere"
 				</on-error-continue>
 			</error-handler>
 		</try>
-		<logger level="INFO" doc:name="Logger" doc:id="e37e5281-f2dd-48d7-87e5-d29e5000e9d0" message="Response SAP Update Contract Account: #[payload]"/>
 		<ee:transform doc:name="Update Contract Account - Response Transformation" doc:id="d830ecec-0724-44e8-a2b3-31df61bb6fd5" >
 			<ee:message >
 				<ee:set-payload ><![CDATA[%dw 2.0

@@ -9,7 +9,6 @@ http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s
 	
 	<flow name="create-contract-account-implFlow" doc:id="cb98a60a-a89a-44a3-917e-cc3dcfca6d84" >
 		<logger level="INFO" doc:name="Logger" doc:id="ab606c2e-f50b-48c5-9ff4-4f6ff8911db2" message="Creating Contract Account"/>
-		<logger level="INFO" doc:name="Logger" doc:id="a406ac7a-221d-40c9-9dfc-1363fb2660ab" message="RequestFromProc: #[payload]"/>
 		<set-variable value="#[payload]" doc:name="Contract Account" doc:id="8478856c-ad7d-489c-98b2-85fc368b5e95" variableName="contractAccount"/>
 		<flow-ref doc:name="upsert-bank-account-implFlow" doc:id="73de3bd6-b41d-404b-8a7f-95c8a14417b6" name="upsert-bank-account-implFlow" />
 		<flow-ref doc:name="upsert-account-address-implFlow" doc:id="40d1c3a5-c97f-4939-bd5f-bc033d766b67" name="upsert-account-address-implFlow" />
@@ -43,7 +42,6 @@ http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s
 				</on-error-continue>
 			</error-handler>
 		</try>
-		<logger level="INFO" doc:name="Logger" doc:id="ef3cf8ff-4e01-4367-8d58-5e4adeeec3f3" message="Response SAP Create Contract Account: #[payload]"/>
 		<ee:transform doc:name="Create Contract Account - Response Transformation" doc:id="93c4c0d1-c45b-4ee1-a37f-34a1ed38566e">
 			<ee:message>
 				<ee:set-payload resource="dataweave/create-contract-account-response-transformation.dwl" />

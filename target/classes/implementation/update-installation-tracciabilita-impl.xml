@@ -44,10 +44,9 @@ output application/json skipNullOn="everywhere"
   "Ableinh": payload.Ableinh,
   "Zzcodraggh" : if (isEmpty(vars.installation.ALIA_ZZCODRAGG__c)) "" else vars.installation.ALIA_ZZCODRAGG__c,
 //  "Ab": "2023-01-01T00:00:00"
-  ("Ab" : vars.installation.ALIA_AB__c as Date {format: "yyyyMMdd"} as String {format: "yyyy-MM-dd"} ++ 'T00:00:00') if (!isEmpty(vars.installation.ALIA_AB__c)),
+  ("Ab" : vars.installation.ALIA_AB__c as Date {format: "yyyyMMdd"} as String {format: "yyyy-MM-dd"} ++ 'T00:00:00') if (!isEmpty(vars.installation.ALIA_AB__c))
 //  ("Bis" : vars.installation.ALIA_BIS__c as Date {format: "yyyyMMdd"} as String {format: "yyyy-MM-dd"} ++ 'T00:00:00') if (!isEmpty(vars.installation.ALIA_BIS__c)),
 //  "Aklasse" :  "RF00"
-
 }]]></ee:set-payload>
 					</ee:message>
 				</ee:transform>

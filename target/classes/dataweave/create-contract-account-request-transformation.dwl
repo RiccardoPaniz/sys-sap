@@ -1,5 +1,4 @@
 %dw 2.0
-import * from dw::core::Strings
 output application/java
 ---
 {
@@ -28,18 +27,6 @@ output application/java
   ("AccountAddressID" :
   	if (vars.contractAccount.ALIA_SHIPPING_ADDRESS_ID__c == null) vars.accountAddress.AddressID else vars.contractAccount.ALIA_SHIPPING_ADDRESS_ID__c)
   	if (!isEmpty(vars.accountAddress.AddressID) or !isEmpty(vars.contractAccount.ALIA_SHIPPING_ADDRESS_ID__c)),
-  ("InterestKey" : vars.contractAccount.ALIA_INTEREST_KEY__c) if (!isEmpty(vars.contractAccount.ALIA_INTEREST_KEY__c)),
-  ("NomeIntIban": vars.contractAccount.ALIA_NomeIntestatarioIban__c) if (!isEmpty(vars.contractAccount.ALIA_NomeIntestatarioIban__c)),
-  ("CognomeIntIban": vars.contractAccount.ALIA_CognomeIntestatarioIban__c) if (!isEmpty(vars.contractAccount.ALIA_CognomeIntestatarioIban__c)),
-  ("CfIntIban": vars.contractAccount.ALIA_CodiceFiscaleIntestatarioIban__c) if (!isEmpty(vars.contractAccount.ALIA_CodiceFiscaleIntestatarioIban__c)),
-  ("RsocIbanName": vars.contractAccount.ALIA_RagioneSocialeIntestatarioIban__c) if (!isEmpty(vars.contractAccount.ALIA_RagioneSocialeIntestatarioIban__c)),
-  ("TaxNumIban": if (substring(vars.contractAccount.ALIA_PartIvaIntestIban__c, 0, 2) == "IT")
-  	                substringAfter(vars.contractAccount.ALIA_PartIvaIntestIban__c, "IT")
-                 else
-                    vars.contractAccount.ALIA_PartIvaIntestIban__c) if (!isEmpty(vars.contractAccount.ALIA_PartIvaIntestIban__c)),
-  ("EredeIban": if (vars.contractAccount.ALIA_Erede__c==true)
-  					"Si"
-  				 else
-  				 	"No"
-  ) if (!isEmpty(vars.contractAccount.ALIA_Erede__c))
- }
+  ("InterestKey" : vars.contractAccount.ALIA_INTEREST_KEY__c) if (!isEmpty(vars.contractAccount.ALIA_INTEREST_KEY__c))
+  
+}

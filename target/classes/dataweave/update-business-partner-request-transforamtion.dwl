@@ -30,20 +30,8 @@ var splittedName = if (vars.businessPartner.Name  == null) null else divideBy40(
   "BusinessPartnerDeathDate" :  if (isEmpty(vars.businessPartner.ALIA_DEATHDT__c)) null else (vars.businessPartner.ALIA_DEATHDT__c as Date {format: "yyyyMMdd"} as String {format: "yyyy-MM-dd"} ++ 'T00:00:00'),
   "BusPartMaritalStatus" : vars.businessPartner.ALIA_MARST__c,
   ("BusinessPartnerCategory" : "1") if (vars.businessPartner.IsPersonAccount == true),
-  ("BusinessPartnerCategory" : "2") if (vars.businessPartner.IsPersonAccount == false), 
- /* 
-  
-  ("BusinessPartnerCategory":   if (vars.businessPartner.BusinessPartnerCategory__c != null)
-  								 vars.businessPartner.BusinessPartnerCategory__c
-  							   else if (vars.businessPartner.IsPersonAccount == false) 
-  							     "BusinessPartnerCategory" : "2" 
-  							   else 
-  							      null) if(vars.businessPartner.BusinessPartnerCategory__c != null or vars.businessPartner.IsPersonAccount == false),
-  
-  
-  
-  * */
-   "AdditionalLastName" : vars.businessPartner.MiddleName,
+  ("BusinessPartnerCategory" : "2") if (vars.businessPartner.IsPersonAccount == false),  
+  "AdditionalLastName" : vars.businessPartner.MiddleName,
   "BusinessPartnerIsBlocked" : vars.businessPartner.ALIA_Account_Update_Blocked__c,
   ("BusinessPartnerType" : "V001") if (vars.businessPartner.IsPersonAccount == true),
   ("BusinessPartnerType" : "V002") if (vars.businessPartner.IsPersonAccount == false),
