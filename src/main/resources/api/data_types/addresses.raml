@@ -1,0 +1,17 @@
+#%RAML 1.0 DataType
+displayName: Addresses
+description: Response for Addresses requests
+type: object
+additionalProperties: true
+properties:
+  status:
+    type: !include status.raml
+    required: false
+    description: Status
+    displayName: Status
+  recordList:
+    type: array
+    items: !include addresses_elem.raml
+    required: false
+    description: List of Addresses
+    displayName: List of Addresses

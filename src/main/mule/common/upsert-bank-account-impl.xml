@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:s4hana="http://www.mulesoft.org/schema/mule/s4hana"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s4hana/current/mule-s4hana.xsd">
+	
+	<flow name="upsert-bank-account-implFlow" doc:id="cb98a60a-a89a-44a3-917e-cc3dcfca6d84" >
+		<choice doc:name="Choice" doc:id="52c7127e-c0d0-455a-8da7-eefddc1a2d31" >
+			<when expression="#[vars.contractAccount.ALIA_BKVID__c == null and vars.contractAccount.ALIA_IBAN_Outbound__c != null]">
+				<ee:transform doc:name="Create Bank Account - Request Transformation" doc:id="9e821af1-5f42-46d1-878d-b6c8d22a1f74">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json
+---
+{
+  ("AccountID" : vars.contractAccount.AccountID) if (vars.contractAccount.AccountID != null),
+  "IBAN" : vars.contractAccount.ALIA_IBAN_Outbound__c,
+  "ControlKey" : vars.contractAccount.ALIA_IBAN_Outbound__c[4],
+  "CountryID" : substring(vars.contractAccount.ALIA_IBAN_Outbound__c, 0, 2),
+  ("Bank":{
+  	"SWIFTCode": vars.contractAccount.ALIA_Bic_Swift__c
+  }) if (!isEmpty(vars.contractAccount.ALIA_Bic_Swift__c))
+}
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="fb04c8d3-6277-44fd-adb6-9fbc02dfdb9f" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Creating Bank Account using payload: " ++ write(payload, "application/json")]' />
+				<s4hana:create-entity service="ZERP_ISU_UMC_SRV" entityType="BankAccounts" doc:name="Create Bank Account" doc:id="d33e66c4-0cc8-4a3e-a616-780a378cdb25" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config">
+				    <reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+				</s4hana:create-entity>
+				<logger level="INFO" doc:name="Logger" doc:id="9433dc81-0e55-46c5-9bde-bb3d8bd3bf3e" message="Bank Account succefully created - #[payload]" />
+				<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]" doc:name="Bank Account" doc:id="646cf728-a13d-43c0-97e6-3b6cdb65f2dd" variableName="bankAccount" />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="fd6ae6ce-ca4a-4028-847f-fe60d5229978" message='No Bank Account to be created nor updated' />
+			</otherwise>
+		</choice>
+	</flow>	
+	
+	</mule>

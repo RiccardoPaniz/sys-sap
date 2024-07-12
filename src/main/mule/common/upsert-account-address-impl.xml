@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:s4hana="http://www.mulesoft.org/schema/mule/s4hana"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s4hana/current/mule-s4hana.xsd">
+	
+	<flow name="upsert-account-address-implFlow" doc:id="cb98a60a-a89a-44a3-917e-cc3dcfca6d84" >
+		<choice doc:name="Choice" doc:id="189fad21-f872-467d-b359-3f6c447ba849" >
+			<when expression="#[isEmpty(vars.contractAccount.ALIA_SHIPPING_ADDRESS_ID__c) and (vars.contractAccount.ALIA_ShippingCity__c != null &#10;or vars.contractAccount.ALIA_ShippingPostalCode__c != null or vars.contractAccount.ALIA_ShippingStreet__c != null &#10;or vars.contractAccount.ALIA_ShippingHouseNumber__c != null or vars.contractAccount.ALIA_ShippingNationCode__c != null &#10;or vars.contractAccount.ALIA_ShippingStateCode__c != null)]">
+				<ee:transform doc:name="Create Account Address - Request Transformation" doc:id="6168f5cf-5fcb-4bd1-9f76-339a6ec19bf1">
+					<ee:message>
+						<ee:set-payload resource="dataweave/create-account-address-request-transformation.dwl" />
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="2c877e47-3ab2-495f-8bfb-40576ef210ec" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Creating Account Address using payload: " ++ write(payload, "application/json")]' />
+				<try doc:name="Try" doc:id="39c8b934-c4d0-4c14-9a9f-b434e82a9665" >
+					<s4hana:create-entity doc:name="Create Account Address" doc:id="6f3a7e73-70db-41b8-8e9a-8eb05c84d51e" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_UMC_SRV" entityType="AccountAddresses">
+				    <reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}" />
+				</s4hana:create-entity>
+				<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="e22397de-80ce-4656-bf46-781e023c31f0" when='error.description contains "INT_MULE_ISU"'>
+					<flow-ref doc:name="manage-errorFlow and SV originalError" doc:id="466715dc-0569-4e47-b1b6-49ec0e2cfe36" name="manage-errorFlow" target="originalError"/>
+					<until-successful maxRetries="2" doc:name="Until Successful" doc:id="daf33e1b-4476-4c03-b3ef-c5b3dc58c9e9" millisBetweenRetries="5000">
+					<s4hana:create-entity doc:name="Create Account Address" doc:id="78cd7e01-33ac-44bc-9f9d-509758ffe828" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_UMC_SRV" entityType="AccountAddresses">
+				    <reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}" />
+				</s4hana:create-entity>
+					</until-successful>
+					<remove-variable doc:name="Remove Variable" doc:id="c1166829-795b-44bb-9fbb-5450ada50e05" variableName="originalError"/>
+				</on-error-continue>
+			</error-handler>
+				</try>
+				<logger level="INFO" doc:name="Logger" doc:id="d8e8ddfc-22f6-479c-8f28-71c4369174bf" message="Account Address successfully created - #[payload]" />
+				<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]" doc:name="Account Address" doc:id="2da34940-e1d7-4142-ada7-627e1f77b0b2" variableName="accountAddress" />
+				<ee:transform doc:name="Create Address Usage - Request Transformation" doc:id="0a7ec79a-cbf2-4758-a6a3-3c62571a1a90">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"AddressID" : vars.accountAddress.AddressID,
+	"AddressUsage" : "BILL_TO",
+//	"StandardUsage" : false,
+	"BusinessPartner" : vars.contractAccount.AccountID,
+	"ValidityEndDate" : "9999-12-31T00:00:00",
+	"ValidityStartDate" : (now() >> 'CET') as String {format: "yyyy-MM-dd'T'00:00:00"}
+}]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="b907f251-1b58-499e-b6f3-d5a7ccf3c815" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Creating Address Usage using payload: " ++ write(payload, "application/json")]'/>
+				<s4hana:create-entity doc:name="Create Address Usage" doc:id="acfcba06-e222-476b-834b-c296c434b809" config-ref="SAP_S_4HANA_Config" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" service="API_BUSINESS_PARTNER" entityType="A_BuPaAddressUsage">
+				    <reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+				</s4hana:create-entity>
+				<logger level="INFO" doc:name="Logger" doc:id="4ba01bb5-31d9-42a7-9918-7b5cc78d0939" message="Address Usage successfully set - #[payload]" />
+			</when>
+			<otherwise>
+				<ee:transform doc:name="Transform Message" doc:id="25ce0b25-0cba-4f08-8c33-0691515d2d7f" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/java
+---
+{
+	"AddressID" : vars.contractAccount.ALIA_SHIPPING_ADDRESS_ID__c,
+	"BusinessPartner" : vars.contractAccount.AccountID,
+	//"AccountID" : vars.contractAccount.AccountID,
+	"CityName" : vars.contractAccount.ALIA_ShippingCity__c,
+	"PostalCode" : vars.contractAccount.ALIA_ShippingPostalCode__c,
+	"StreetName" : vars.contractAccount.ALIA_ShippingStreet__c,
+	"Floor" : vars.contractAccount.ALIA_Shipping_Floor__c,
+	"RoomNumber" : vars.contractAccount.ALIA_Shipping_ROOMNUMBER__c,
+	"HouseNumber" : vars.contractAccount.ALIA_ShippingHouseNumber__c,
+	"HouseNumberSupplementText" : vars.contractAccount.ALIA_ShippingHouseNumber2__c,
+	"Country" : vars.contractAccount.ALIA_ShippingNationCode__c,
+	"Region" : vars.contractAccount.ALIA_ShippingStateCode__c,
+	"StreetSuffixName" : vars.contractAccount.ALIA_SHIPPING_STR_SUPPL3__c,
+	"District": vars.contractAccount.ALIA_Shipping_LOCATION__c
+}
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="96fd875d-41ac-4e9f-bb97-9c9d74be4f0b" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Updating Account Address using payload: " ++ write(payload, "application/json")]' />
+				<try>
+				<s4hana:update-entity doc:name="Update Account Address" doc:id="b6ade773-9b9e-4dcc-a3cf-641f67a0b9dc" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="API_BUSINESS_PARTNER" entityType="A_BusinessPartnerAddress">
+				    <reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+				</s4hana:update-entity>
+				<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="531baab4-5ea4-4b44-891e-03568b4fcf61" when='error.description contains "INT_MULE_ISU"'>
+					<flow-ref doc:name="manage-errorFlow and SV originalError" doc:id="ba69f4f4-adcb-4a67-83c4-daeb03f693b6" name="manage-errorFlow" target="originalError"/>
+					<until-successful maxRetries="2" doc:name="Until Successful" doc:id="e93899dd-a5b6-4684-b503-91f3813c557e" millisBetweenRetries="5000">
+					<s4hana:update-entity doc:name="Update Account Address" doc:id="3fec36c9-0e26-4e74-bbcb-07323f692f53" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="API_BUSINESS_PARTNER" entityType="A_BusinessPartnerAddress">
+				    <reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+				</s4hana:update-entity>
+					</until-successful>
+					<remove-variable doc:name="Remove Variable" doc:id="3cfe4ca2-43e4-46a6-842e-3d62ce46d6cc" variableName="originalError"/>
+				</on-error-continue>
+			</error-handler>
+			</try>
+				<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;payload]" doc:name="Account Address" doc:id="3d0ea3bd-51b7-4a93-9ce4-347f361804c0" variableName="accountAddress" />
+				<logger level="INFO" doc:name="Logger" doc:id="88e9a186-9c28-4883-8fcf-bd4dcc448692" message="Account Address successfully updated - #[payload]" />
+			</otherwise>
+		</choice>
+	</flow>	
+	
+	</mule>

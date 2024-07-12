@@ -1,0 +1,123 @@
+#%RAML 1.0 DataType
+displayName: Account
+description: Common Account Data Type
+type: object
+additionalProperties: true
+properties:
+  Id:
+    type: string
+    required: false
+    description: Salesforce Auto generated ID
+    displayName: ID
+    minLength: 18
+    maxLength: 18
+    example: "567480976762400476"
+  ALIA_OLDKEY__c:
+    type: string
+    required: false
+    maxLength: 30
+  ALIA_BPEXT__c:
+    type: string
+    required: false
+    maxLength: 20
+  ALIA_BPEXT_Contact__c:
+    type: string
+    required: false
+    maxLength: 20
+  ALIA_VALID_FROM_1__c:
+    type: string
+    required: false
+    maxLength: 10
+  ALIA_TITLE__c:
+    type: string
+    required: false
+    maxLength: 4
+  Name:
+    type: string
+    required: false
+  ALIA_LEGAL_ENTY__c:
+    type: string
+    required: false
+    maxLength: 2
+  ALIA_FOUND_DAT__c:
+    type: string
+    required: false
+    maxLength: 10
+  ALIA_LIQUID_DAT__c:
+    type: string
+    required: false
+    maxLength: 8
+  ALIA_BU_SORT1__c:
+    type: string
+    required: false
+    maxLength: 20
+  ALIA_BU_SORT2__c:
+    type: string
+    required: false
+    maxLength: 20
+  Salutation:
+    type: string
+    required: false
+    maxLength: 4
+  LastName:
+    type: string
+    required: false
+    maxLength: 40
+  FirstName:
+    type: string
+    required: false
+    maxLength: 40
+  ALIA_TITLE_ACA1__c:    
+    type: string
+    required: false
+    maxLength: 4
+  ALIA_Gender__c:
+    type: string
+    required: false
+    maxLength: 1
+  PERSONBIRTHDATE:
+    type: string
+    required: false
+    maxLength: 10
+  ALIA_BIRTHPL__c:
+    type: string
+    required: false
+    maxLength: 40
+  ALIA_DEATHDT__c:
+    type: string
+    required: false
+    maxLength: 10
+  ALIA_MARST__c:
+    type: string
+    required: false
+    maxLength: 1
+  ALIA_NATIO__c:
+    type: string
+    required: false
+    maxLength: 3
+  ALIA_PARTGRPTYP__c:
+    type: string
+    required: false
+    maxLength: 4
+  A_AddressPhoneNumber:
+    type: array
+    items: !include addressPhoneNumber.raml
+    uniqueItems: true
+    required: false
+    minItems: 1
+  A_AddressEmailAddress:
+    type: array
+    items: !include addressEmailAddress.raml
+    uniqueItems: true
+    required: false
+    minItems: 1
+  A_BusinessPartner:
+    type: !include businessPartner.raml
+    required: false
+  A_BusinessPartnerAddress:
+    type: !include businessPartnerAddress.raml
+    required: false
+  IsPersonAccount:
+    type: boolean
+    required: false
+

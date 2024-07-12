@@ -1,0 +1,673 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:apikit="http://www.mulesoft.org/schema/mule/mule-apikit" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation=" http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd http://www.mulesoft.org/schema/mule/mule-apikit http://www.mulesoft.org/schema/mule/mule-apikit/current/mule-apikit.xsd http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd ">
+   
+    <flow name="alia-sys-sap-main">
+        <http:listener path="/*" config-ref="alia-sys-sap-httpListenerConfig">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+		<apikit:router config-ref="alia-sys-sap-config" />
+		<error-handler ref="common-error-handler" />
+    </flow>
+    <flow name="alia-sys-sap-console">
+        <http:listener path="/console/*" config-ref="alia-sys-sap-httpListenerConfig">
+            <http:response statusCode="#[vars.httpStatus default 200]">
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:response>
+            <http:error-response statusCode="#[vars.httpStatus default 500]">
+                <http:body><![CDATA[#[payload]]]></http:body>
+                <http:headers><![CDATA[#[vars.outboundHeaders default {}]]]></http:headers>
+            </http:error-response>
+        </http:listener>
+        <apikit:console config-ref="alia-sys-sap-config" />
+        <error-handler>
+            <on-error-propagate type="APIKIT:NOT_FOUND">
+                <ee:transform>
+                    <ee:message>
+                        <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+{message: "Resource not found"}]]></ee:set-payload>
+                    </ee:message>
+                    <ee:variables>
+                        <ee:set-variable variableName="httpStatus">404</ee:set-variable>
+                    </ee:variables>
+                </ee:transform>
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\businessPartners:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST Business Partner received" />
+        <flow-ref doc:name="create-business-partner-implFlow" doc:id="1ea06b30-e4f6-480c-84b3-ecd5b97c44bd" name="create-business-partner-implFlow" />
+        <ee:transform doc:name="Payload2JSON" doc:id="c4ef3bab-6473-4ea4-83a1-7e89f89e730c">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="846f1e05-f589-4086-bd26-e739845823ee">
+                <flow-ref doc:name="manage-errorFlow" doc:id="2a0aa72f-37f4-4617-9e80-1dd7fe347acf" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\businessPartners\(businessPartnerId):alia-sys-sap-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="businessPartnerId">attributes.uriParams.'businessPartnerId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="get-business-partner-impl-flow" doc:id="abf056fb-3d20-43b4-8904-f8659e6f05f4" name="get-business-partner-impl-flow" />
+        <ee:transform doc:name="Payload2JSON">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="patch:\businessPartners\(businessPartnerId):application\json:alia-sys-sap-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="businessPartnerId">attributes.uriParams.'businessPartnerId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="update-business-partner-impl-flow" doc:id="e853a6b0-6ce2-4ea8-9ceb-9356b7267364" name="update-business-partner-impl-flow" />
+        <ee:transform doc:name="Payload2JSON">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="2bc8c0b1-56dc-4041-89fe-84077ec4d8f8">
+                <flow-ref doc:name="manage-errorFlow" doc:id="aa54248f-f5a3-4b29-9f64-99ce44019f00" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\relationships:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST Business Partner received" />
+        <flow-ref doc:name="create-relationship-implFlow" doc:id="39d21705-376c-4817-87d5-593c45ea6272" name="create-relationship-impl-flow" />
+        <ee:transform doc:name="Payload2JSON" doc:id="9c600ec7-4044-4ba3-a9f9-00a1b251a406">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="a6574e4d-bdd4-4840-94a9-a9f19c762e58">
+                <flow-ref doc:name="manage-errorFlow" doc:id="bf3adb19-bd49-4301-9164-5ed70cbc46d7" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\relationships\(relationshipId):alia-sys-sap-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="relationshipId">attributes.uriParams.'relationshipId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="get-relationship-impl-flow" doc:id="47ad8135-bf50-4116-8b3e-ba5907ea7f9d" name="get-relationship-impl-flow" />
+        <ee:transform doc:name="Payload2JSON">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="patch:\relationships\(relationshipId):application\json:alia-sys-sap-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="relationshipId">attributes.uriParams.'relationshipId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="update-relationship-impl-flow" doc:id="3eed866d-00f7-44c5-9255-b8163ca1cd40" name="update-relationship-impl-flow" />
+        <ee:transform doc:name="Payload2JSON">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c8c51a69-9a01-4ac8-9faf-2bb704ded341">
+                <flow-ref doc:name="manage-errorFlow" doc:id="323039e8-caf0-40a4-93ca-0f90426e90dd" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="patch:\contractAccounts\(contractAccountId):application\json:alia-sys-sap-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="contractAccountId">attributes.uriParams.'contractAccountId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="update-contract-account-impl-flow" doc:id="b85d00cd-7a1d-4439-994a-b85fd76aab57" name="update-contract-account-implFlow" />
+        <ee:transform doc:name="Payload2JSON">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0d421e9b-2106-4801-b675-166d9645baf3">
+                <flow-ref doc:name="manage-errorFlow" doc:id="e39380ec-785f-49c5-929d-c8f7831b9b95" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\contractAccounts:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST Contract Account received" />
+        <flow-ref doc:name="create-contract-account-implFlow" doc:id="23e973df-e8ca-43ee-960c-a4fd8873db0a" name="create-contract-account-implFlow" />
+        <ee:transform doc:name="Payload2JSON" doc:id="36a52020-48fb-4e9b-9064-cc6b4c48b21d">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="7a929f57-337a-447a-bd49-e5b8eaae2b89">
+                <flow-ref doc:name="manage-errorFlow" doc:id="90a1620d-1d02-4535-905c-ca2bcad929ce" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="patch:\contracts\(contractId):application\json:alia-sys-sap-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="contractId">attributes.uriParams.'contractId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="update-contract-impl-flow" doc:id="84e4a69c-8f22-4ed2-baac-c579841b322a" name="update-contract-implFlow" />
+        <ee:transform doc:name="Payload2JSON">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="fb20aaf4-f470-4d19-a1e8-a22fb257991a">
+                <flow-ref doc:name="manage-errorFlow" doc:id="69ccb26d-60d5-42b7-b323-34a695d69607" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\contracts:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST Contract received" />
+        <flow-ref doc:name="create-contract-implFlow" doc:id="c9002e4f-3ca9-40dc-8af7-7d10113c143d" name="create-contract-implFlow" />
+        <ee:transform doc:name="Payload2JSON" doc:id="baede9a3-d161-446d-9649-8837b126c9f8">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="b9639a7a-f96a-44ce-9e0e-dd2ee00c7f9d">
+                <flow-ref doc:name="manage-errorFlow" doc:id="73c0edb9-053b-46b6-a4fd-de3b2d2f7330" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\contracts\evasions:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST Contract Evasion received" />
+        <flow-ref doc:name="create-contract-evasion-implFlow" doc:id="a58ec9af-385b-4798-ad2c-348331cc42dc" name="create-contract-evasion-implFlow" />
+        <ee:transform doc:name="Payload2JSON" doc:id="d4e9a022-699c-4bde-9a8e-58808ddc2aed">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="5de52f60-7520-409e-aeab-b0e21d801459">
+                <flow-ref doc:name="manage-errorFlow" doc:id="80822f6f-9561-458b-b29c-cb5532d04a4b" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\contracts\evasions\assessments:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST Contract Evasion Assessment received" />
+        <flow-ref doc:name="create-contract-evasion-assessment-implFlow" doc:id="e54f586f-2ad1-4155-816a-9280ffbce522" name="create-contract-evasion-assessment-implFlow" />
+        <ee:transform doc:name="Payload2JSON" doc:id="23f53b41-b0d0-4e56-b5d1-75ec63344026">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="fbbf645f-91e1-463a-abae-0881e7ac91c2">
+                <flow-ref doc:name="manage-errorFlow" doc:id="7bb5666a-8f28-4501-beab-f6ac8da22066" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\operands:alia-sys-sap-config">
+        <flow-ref doc:name="get-operands-impl-flow" doc:id="3b563823-4d14-41be-bbab-a412331bdb2e" name="get-operands-impl-flow" />
+        <ee:transform doc:name="Payload2JSON">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="d2ab669a-79c3-4a9f-bb00-9ccccec7642c">
+                <flow-ref doc:name="manage-errorFlow" doc:id="e6ee0b8d-8ea9-4ff3-ba88-86e4aa1cac7e" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\operands:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST Operands received" />
+        <flow-ref doc:name="create-operands-implFlow" doc:id="a0b3998b-319f-4d44-b3d2-9886a4f256ac" name="create-operands-implFlow" />
+        <ee:transform doc:name="Payload2JSON" doc:id="645950fc-ea3d-483b-926c-4c49f78fe97a">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="210f7c41-8155-41c4-9822-81e716052714">
+                <flow-ref doc:name="manage-errorFlow" doc:id="54158827-2084-45f4-80f2-4d7f8a9a8ef0" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="patch:\operands:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST Operands received" />
+        <flow-ref doc:name="update-operands-implFlow" doc:id="f75c8615-9b59-41f2-a0c7-6bc001984bf1" name="update-operands-implFlow" />
+        <ee:transform doc:name="Payload2JSON" doc:id="9d22f4c6-1558-4bd8-b3e4-1a96bef37bc4">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="61540903-2cc6-4b3c-acd0-09e2e9a108ac">
+                <flow-ref doc:name="manage-errorFlow" doc:id="660b262b-1500-4646-868d-27b8eabcf00d" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\connectionObjects:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST ConnObj received" />
+        <flow-ref doc:name="create-connection-object-implFlow" doc:id="657ef51e-9036-423f-afa5-74c34f231140" name="create-connection-object-implFlow" />
+        <ee:transform doc:name="Payload2JSON" doc:id="fa50e8e3-bbf3-4d6f-a4c7-122093d95b9d">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="647f47db-2e76-4030-8c8e-817b781a2300">
+                <flow-ref doc:name="manage-errorFlow" doc:id="93f44dad-2f0d-4353-b5b0-adfa93a9461a" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="patch:\connectionObjects\(connectionObjectId):application\json:alia-sys-sap-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="connObjId"><![CDATA[attributes.uriParams.'connectionObjectId']]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="update-connection-object-implFlow" doc:id="83079da2-edd3-4617-8dda-5bd219c2f6dd" name="update-connection-object-implFlow" />
+        <ee:transform doc:name="Payload2JSON">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0f96e4e6-56ae-4521-802c-9d377a9c6347">
+                <flow-ref doc:name="manage-errorFlow" doc:id="d2618fd0-df6b-4f3a-9f9a-8f7dbf6a769f" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\premises:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST Premise received" />
+        <flow-ref doc:name="create-premise-implFlow" doc:id="56a0e558-b0c7-4751-981f-b542b5f4c07e" name="create-premise-implFlow" />
+        <ee:transform doc:name="Payload2JSON" doc:id="f3330771-cbfc-40b3-869f-984d29988996">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="49d30aea-f010-44a5-9592-28f351480d93">
+                <flow-ref doc:name="manage-errorFlow" doc:id="bfcc44c1-768d-4ad9-bd48-59b1ce4672f4" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\premisesForAddress:application\json:alia-sys-sap-config">
+        <ee:transform doc:name="SV queryParameters" doc:id="e16af7d8-56f2-43d1-a9f8-d411f8e2f4c7">
+            <ee:message />
+            <ee:variables>
+                <ee:set-variable variableName="queryParameters"><![CDATA[%dw 2.0
+output application/json
+---
+{
+	"foglio" : attributes.queryParams.foglio,
+	"particella" : attributes.queryParams.particella,
+	"subalterno" : attributes.queryParams.subalterno
+}]]></ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="get-premises-for-address-impl-flow" doc:id="9e6ffaf4-f70e-4eda-b3ad-1f7728d55d66" name="get-premises-for-address-impl-flow" />
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="f12f73b6-052d-4d35-bceb-dae52f2a391a">
+                <flow-ref doc:name="manage-errorFlow" doc:id="f78ec139-db08-4864-ab72-4d2969abf36c" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="patch:\premises\(premiseId):application\json:alia-sys-sap-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="premiseId">attributes.uriParams.'premiseId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="update-premise-impl-flow" doc:id="3566f4d7-24cc-4735-ac26-e61a7fa02b1e" name="update-premise-implFlow" />
+        <ee:transform doc:name="Payload2JSON">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="3a6b0b51-7946-4093-8ce5-c814b29fbddf">
+                <flow-ref doc:name="manage-errorFlow" doc:id="9d02878f-1f90-4f05-aa34-516a4c4b3531" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\installations:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST Installation received" />
+        <flow-ref doc:name="create-installation-implFlow" doc:id="6ce06a71-3c43-48f5-8a75-9d92475a1175" name="create-installation-implFlow" />
+        <ee:transform doc:name="Payload2JSON" doc:id="5e80bf2a-fd2f-4337-b249-bdaf005a4b0e">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="711bc5af-3a97-48bd-9f43-1a761d51a97a">
+                <flow-ref doc:name="manage-errorFlow" doc:id="fb14d422-9895-470b-9680-dd623102fd33" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="patch:\installations\(installationId):application\json:alia-sys-sap-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="installationId">attributes.uriParams.'installationId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="update-installation-impl-flow" doc:id="af66dcb5-e72f-4d47-a023-f8ae7b21d666" name="update-installation-implFlow" />
+        <ee:transform doc:name="Payload2JSON">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="e08950de-31af-4c38-bbb5-d82ae380fb73">
+                <flow-ref doc:name="manage-errorFlow" doc:id="da7f0d9d-2c64-4c59-b38e-094fcee1d7f1" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\locks:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST Locks received" />
+        <flow-ref doc:name="upsert-locks-implFlow" doc:id="9f55ce07-2277-43bf-b9c8-f42d7ac631d2" name="upsert-locks-implFlow" />
+        <ee:transform doc:name="Payload2JSON" doc:id="bd9dd1cc-9927-481d-ad47-98f6429cc581">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="3d9cab86-7a7e-46c9-8331-60e633f7b443">
+                <flow-ref doc:name="manage-errorFlow" doc:id="cf937e10-6740-4f1d-b63a-5e0dad627ca8" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\landRegisterData:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST Land Register Data received" />
+        <flow-ref doc:name="upsert-land-register-data-implFlow" doc:id="ea8b3033-c694-433c-bb7a-028cf2e10589" name="upsert-land-register-data-implFlow" />
+        <ee:transform doc:name="Payload2JSON" doc:id="24285e1a-453e-4ddd-bbd5-15a3d1c9346a">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="7a9c71be-fc69-460e-b657-1249c31837c2">
+                <flow-ref doc:name="manage-errorFlow" doc:id="2f6dad31-ce43-4b25-82e4-571792d8edc6" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="patch:\landRegisterData:application\json:alia-sys-sap-config">
+        <flow-ref doc:name="upsert-land-register-data-implFlow" doc:id="725cb977-a93a-4801-bf16-74d9605ee077" name="upsert-land-register-data-implFlow" />
+        <ee:transform doc:name="Payload2JSON">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c8ba8756-95c6-4f50-bef4-aaa1788e6949">
+                <flow-ref doc:name="manage-errorFlow" doc:id="23b1f942-4eb2-4030-9722-5270775a99f4" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\estrattoConto:alia-sys-sap-config">
+        <flow-ref doc:name="get-estratto-conto-impl-flow" doc:id="d38eaf9e-e6f2-4846-a30d-53e42478d267" name="get-estratto-conto-impl-flow" />
+    </flow>
+    <flow name="get:\sollecitiAvvisi:alia-sys-sap-config">
+        <flow-ref doc:name="get-solleciti-avvisi-impl-flow" doc:id="81ac6866-4b4c-4c95-a7d2-ea81ba309d7e" name="get-solleciti-avvisi-impl-flow" />
+    </flow>
+    <flow name="get:\stradario:alia-sys-sap-config">
+        <flow-ref doc:name="get-stradario-impl-flow" doc:id="f5aef2b6-d88c-4d35-865f-68b5dc60645e" name="get-stradario-impl-flow" />
+    </flow>
+    <flow name="get:\pianoRate:alia-sys-sap-config">
+        <flow-ref doc:name="get-piano-rate-impl-flow" doc:id="2d5d453c-798d-4738-95e8-a77a713d4d80" name="get-piano-rate-impl-flow" />
+    </flow>
+    <flow name="get:\locks:alia-sys-sap-config">
+        <flow-ref doc:name="get-locks-impl-flow" doc:id="1428c130-01e9-4210-bcad-97eaee0e4c71" name="get-locks-impl-flow" />
+    </flow>
+    <flow name="get:\moveContainer:alia-sys-sap-config" doc:id="a98b8abd-8dba-4128-850c-8a0178014870">
+        <flow-ref doc:name="get-move-container-impl-flow" doc:id="e945ec50-a097-4f8f-bd87-d57471fe8495" name="get-move-container-implFlow" />
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="158713b0-5dda-4b28-9295-e83e0026525c">
+                <flow-ref doc:name="manage-errorFlow" doc:id="d08cc1ea-9543-4d66-ac6b-88ecd44a9cd8" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\asset-matricola:alia-sys-sap-config">
+        <flow-ref doc:name="get-asset-matricola-impl-flow" doc:id="bfd36f31-cbfb-46ab-9ada-f19a044ce381" name="get-asset-matricola-impl-flow" />
+    </flow>
+    <flow name="get:\connectionObjects:alia-sys-sap-config">
+        <flow-ref doc:name="get-connection-objects-impl-flow" doc:id="b5a4cd5f-7196-4e90-8462-df12c7356040" name="get-connection-objects-impl-flow" />
+    </flow>
+    <flow name="post:\asset-containers:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST Asset Container received" />
+        <flow-ref doc:name="create-asset-container-implFlow" doc:id="04ae962d-a8f7-4ba9-8da0-e04be3a02ede" name="create-asset-container-implFlow" />
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="5f8f65ce-7adc-4ff8-83ab-85b16d2fa53c">
+                <flow-ref doc:name="manage-errorFlow" doc:id="8eadc112-1cdc-4b96-accd-ebae363739f7" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\deviceLocations:application\json:alia-sys-sap-config">
+        <logger level="INFO" message="POST Device Location received" />
+        <flow-ref doc:name="create-device-location-implFlow" doc:id="7024c332-aa21-4596-a839-98418ea6b5a0" name="create-device-location-implFlow" />
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ccd714c2-f92e-4244-afe8-54d2dcfdebea">
+                <flow-ref doc:name="manage-errorFlow" doc:id="62d2cd49-df63-4177-b535-6f41393f32a8" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\deviceLocations:alia-sys-sap-config">
+        <flow-ref doc:name="get-device-location-impl-flow" doc:id="bb38bb3d-c8ed-407d-af14-fccb7f5cc020" name="get-device-location-impl-flow" />
+        <ee:transform doc:name="Payload2JSON">
+            <ee:message>
+                <ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+            </ee:message>
+        </ee:transform>
+    </flow>
+    <flow name="patch:\contracts\(contractId)\write-off-billing:application\json:alia-sys-sap-config">
+        <flow-ref doc:name="write-off-billing-impl-implFlow" doc:id="c4bfff69-b108-450f-a28f-8312c541d7f1" name="write-off-billing-impl-implFlow" />
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="c7815b5a-51cb-43d9-b127-dc106b42416a">
+                <flow-ref doc:name="manage-errorFlow" doc:id="b8499c1e-24fd-4e40-b830-8aa51e89f30d" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\contracts\write-off:application\json:alia-sys-sap-config" doc:id="773d6644-2992-48c7-b37e-c70bdd0f64be">
+        <flow-ref doc:name="write-off-contracts-implFlow" doc:id="62592187-7f1c-4f6f-8aa3-6fe5f35fdd11" name="write-off-contracts-implFlow" />
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="fcd1e259-188d-440f-b09b-a1b3c34d1270">
+                <flow-ref doc:name="manage-errorFlow" doc:id="47f7d045-f524-431d-b9ae-a93a6d3a3f06" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\sanctionable-period:application\json:alia-sys-sap-config">
+        <flow-ref doc:name="get-sanctionable-period-implFlow" doc:id="f325ec04-28fe-425f-b8ad-2a719fef7f39" name="get-sanctionable-period-implFlow" />
+    </flow>
+    <flow name="patch:\installation-tracciabilita\(installationId):application\json:alia-sys-sap-config">
+        <logger level="INFO" doc:name="Logger" doc:id="7f419286-0a0b-47a1-9ffb-1af8c8d837f6" message="Received call patch:\installation-tracciabilita\(installationId)" />
+		<ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="installationId">attributes.uriParams.'installationId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="update-installation-tracciabilita-implFlow" doc:id="538e3351-aa37-4ef6-a87d-0ccc77c2fad7" name="update-installation-tracciabilita-implFlow" />
+		<error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9cc4728a-e262-4179-af70-f50b21ceb191">
+                <flow-ref doc:name="manage-errorFlow" doc:id="a7f6743b-1da0-43a1-98fa-f1eb4e3be559" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\installations:alia-sys-sap-config">
+        <flow-ref doc:name="get-installation-implFlow" doc:id="ee1d6a0a-1792-420b-951a-b41647fdbadd" name="get-installation-implFlow" />
+    </flow>
+    <flow name="patch:\asset-tag:application\json:alia-sys-sap-config">
+        <logger level="INFO" doc:name="Logger" doc:id="aef95286-32e7-4793-9d1e-4825f85319d5" message="PATCH Asset Tag received" />
+        <logger level="INFO" doc:name="Logger" doc:id="75d94759-7e1e-4a41-b54c-2d12c9fb26e3" message="#[payload]"/>
+		<flow-ref doc:name="update-asset-tag-implFlow" doc:id="89190d4b-a202-4755-a32b-0f98e070197a" name="update-asset-tagFlow" />
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="65e6653c-4ff8-43fd-9650-2def0a562bc1">
+                <flow-ref doc:name="Flow Reference" doc:id="f3d35f6a-be79-4aae-9893-daaeed73f0a5" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\asset-tag:application\json:alia-sys-sap-config">
+        <logger level="INFO" doc:name="Logger" doc:id="3636a513-d11e-4b5c-a86d-9107975abbb0" message="POST Asset Tag received" />
+        <flow-ref doc:name="create-asset-tag-implFlow" doc:id="b3485518-f898-4690-a8bc-765aa30f3990" name="create-asset-tagFlow" />
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="298dd7c0-4fae-4909-a8be-5114e1606940">
+                <flow-ref doc:name="Flow Reference" doc:id="e0322074-d8ac-4229-9f7a-5f3ba5d860ef" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="get:\contracts\(contractId):alia-sys-sap-config">
+        <ee:transform>
+            <ee:variables>
+                <ee:set-variable variableName="contractId">attributes.uriParams.'contractId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="get-contract-implFlow" doc:id="6ab6e1e9-185e-48cd-afb2-e7623217ed95" name="get-contract-implFlow" />
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="38a74bae-3a5b-4548-bcad-e451019129e4">
+                <flow-ref doc:name="manage-errorFlow" doc:id="1bfcf702-7bf4-4acd-828c-7e18e7d4c981" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\contractAccounts\sdiIpaCigCup:application\json:alia-sys-sap-config">
+        <flow-ref doc:name="create-contract-account-sdiIlpaCigCup-implFlow" doc:id="bd21d652-4458-4d9f-b5bf-f329c72d48ea" name="create-contract-account-sdiIlpaCigCup-implFlow" />
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0439e4e1-f12f-4a15-bc70-6d9789dbf2d4">
+                <flow-ref doc:name="manage-errorFlow" doc:id="7addd05c-1d2d-43b7-8217-4e696a28a907" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="post:\accounting-transfer:application\json:alia-sys-sap-config">
+        <flow-ref doc:name="create-accounting-transferFlow" doc:id="6c7c3efb-b30b-45ac-bc96-5e8984dbc232" name="create-accounting-transferFlow" />
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="e5a2eb86-9d20-4012-8f74-1bcab08b5bd8">
+                <flow-ref doc:name="manage-errorFlow" doc:id="5d9ec0f9-02f4-4167-b26f-b349983f9182" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="patch:\businessPartners\(businessPartnerId)\address:application\json:alia-sys-sap-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="businessPartnerId">attributes.uriParams.'businessPartnerId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="update-business-partner-address-impl-flow" doc:id="a8914d85-fbe2-4db9-8345-8b1a2b2f930b" name="update-business-partner-address-impl-flow" />
+        <logger level="INFO" message="patch:\businessPartners\(businessPartnerId)\address:application\json:alia-sys-sap-config" />
+    </flow>
+    <flow name="get:\contractAccounts\(contractAccountOldKey)\addresses\(addressType):alia-sys-sap-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="contractAccountOldKey">attributes.uriParams.'contractAccountOldKey'</ee:set-variable>
+                <ee:set-variable variableName="addressType">attributes.uriParams.'addressType'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="get-contract-accounts-address-implFlow" doc:id="b3426627-7b71-45a9-8ec1-fb1eaecbb8f9" name="get-contract-accounts-address-implFlow" />
+        <error-handler>
+            <on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="9be0c7c2-0649-4946-9e83-8c8504c11909">
+                <flow-ref doc:name="manage-errorFlow" doc:id="4a421085-59eb-4cb2-b072-fe0ca87bcc1b" name="manage-errorFlow" />
+            </on-error-propagate>
+        </error-handler>
+    </flow>
+    <flow name="patch:\contractAccounts\(contractAccountId)\email:application\json:alia-sys-sap-config">
+        <ee:transform doc:name="Transform Message">
+            <ee:variables>
+                <ee:set-variable variableName="contractAccountId">attributes.uriParams.'contractAccountId'</ee:set-variable>
+            </ee:variables>
+        </ee:transform>
+        <flow-ref doc:name="update-contract-account-email-implFlow" doc:id="1a217333-5c6b-4217-a771-1e295090fc10" name="update-contract-account-email-implFlow" />
+    </flow>
+    <flow name="post:\asset:application\json:alia-sys-sap-config">
+		<flow-ref doc:name="create-asset-implFlow" doc:id="31f69fa8-fee6-4f1b-a04a-91f7513a59f3" name="create-asset-implFlow"/>
+    </flow>
+</mule>

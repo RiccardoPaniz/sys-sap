@@ -1,0 +1,162 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:s4hana="http://www.mulesoft.org/schema/mule/s4hana"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s4hana/current/mule-s4hana.xsd">
+	
+	<flow name="upsert-locks-implFlow" doc:id="cb98a60a-a89a-44a3-917e-cc3dcfca6d84" >
+		<logger level="INFO" doc:name="Logger" doc:id="1b9ae611-d452-44bf-b737-289e03a938a3" message="Upsert locks: #[payload]"/>
+		<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;[]]" doc:name="Response" doc:id="1b292f35-ddeb-4c75-a1cf-dd715290c437" variableName="response"/>
+		<foreach doc:name="For Each" doc:id="f00b055e-df06-4cf3-8c51-a67e6b0a249f" collection="payload">
+
+			<set-variable value="#[payload.ALIA_LOOBJ__c]" doc:name="Lock Key" doc:id="441dd9b4-d568-44e8-a37a-ea8e618002b3" variableName="lockKey"/>
+			<set-variable value="#[payload.Id]" doc:name="Lock Id" doc:id="20b4d0e9-4e76-45c8-9660-66db28ff5f85" variableName="lockId" />
+			<ee:transform doc:name="Lock" doc:id="dcb56246-cbcd-4954-9708-1ba7b0d70d45">
+			<ee:message>
+			</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="lock" ><![CDATA[%dw 2.0
+output application/java
+
+---
+{
+  "Gpart" : payload.AccountID,
+  "Vkont" : payload.ContractAccount,
+  ("Vertrag" : payload.ContractID) if (payload.ContractID != null),
+  "Lotyp" : "41",
+  ("Proid" : payload.ALIA_PROID__c) if (payload.ALIA_PROID__c != null),
+  "Tdate" :  if (payload.ALIA_LOCKR_EndDate__c == null) "9999-12-31T00:00:00" else (payload.ALIA_LOCKR_EndDate__c as Date {format: "yyyyMMdd"} as String {format: "yyyy-MM-dd"} ++ 'T00:00:00'),
+  "Fdate" :  if (payload.ALIA_LOCKR_StartDate__c == null) "9999-12-31T00:00:00" else (payload.ALIA_LOCKR_StartDate__c as Date {format: "yyyyMMdd"} as String {format: "yyyy-MM-dd"} ++ 'T00:00:00'),
+  ("Lockr" : payload.ALIA_LOCKR__c) if (payload.ALIA_LOCKR__c != null),
+  ("Abrsperr" : payload.ALIA_ABRSPERR__c) if (payload.ALIA_ABRSPERR__c != null),
+//  ("DocNum" : payload.ALIA_DOCNUM__c) if (payload.ALIA_DOCNUM__c != null)
+}
+]]></ee:set-variable>
+				</ee:variables>
+		</ee:transform>
+<!-- [STUDIO:"Get Locks"]			<s4hana:query doc:name="Get Locks" doc:id="8b66018e-44bf-441c-9f5c-59d5e5a9f57e" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_LOCK_SRV" entityType="BlockOperationSet" filter="#[&quot;Gpart eq '&quot; ++ vars.lock.AccountID ++ &quot; and Vkont eq '&quot; ++ vars.lock.ContractAccountID ++ &quot;'&quot;]">
+				<reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+			</s4hana:query> [STUDIO] -->
+<!-- [STUDIO:"Choice"]			<choice doc:name="Choice" doc:id="5df5a9a0-a4fd-4c26-9f2a-66e14fd89d7a" >
+				<when expression="#[isEmpty(payload) or payload == []]">
+					<logger level="INFO" doc:name="Logger" doc:id="7af13edf-6c59-44d9-b063-4131f3a6c43d" message='#[%dw 2.0&#10;output text/plain&#10;&#45;&#45;-&#10;"Creating Lock with payload - " ++ write(vars.lock, "application/json")]'/>
+					<s4hana:create-entity doc:name="Create Lock" doc:id="81d9290f-bca7-47dc-afc8-eb3a6d56c5e5" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_LOCK_SRV" entityType="BlockOperationSet" >
+						<reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+						<s4hana:entity ><![CDATA[#[vars.lock]]]></s4hana:entity>
+					</s4hana:create-entity>
+				</when>
+				<otherwise >
+					<logger level="INFO" doc:name="Logger" doc:id="b4fb7dcf-d894-4e7f-9912-3e007cb4767a" message='#[%dw 2.0&#10;output text/plain&#10;&#45;&#45;-&#10;"Updating Lock with payload - " ++ write(vars.lock, "application/json")]'/>
+					<s4hana:update-entity doc:name="Update Lock" doc:id="382552cf-a706-4991-be45-ca3af8ea6825" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_LOCK_SRV" entityType="BlockOperationSet" >
+						<reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+						<s4hana:entity ><![CDATA[#[vars.lock]]]></s4hana:entity>
+					</s4hana:update-entity>
+				</otherwise>
+			</choice> [STUDIO] -->
+			<choice doc:name="Choice" doc:id="9e73659f-6eea-44ba-a20b-29d67a4d5e65" >
+				<when expression="#[isEmpty(vars.lockKey)]">
+					<logger level="INFO" doc:name="Logger" doc:id="9e7d9682-6dff-4979-94dd-cc5c3d949cac" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Creating Lock with payload: " ++ write(vars.lock, "application/json")]'/>
+					<s4hana:create-entity doc:name="Create Lock" doc:id="1e9ed6d7-6b21-4f8c-a43a-1a6c4172fdf5" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_LOCK_SRV" entityType="BlockOperationSet" >
+						<reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+						<s4hana:entity ><![CDATA[#[vars.lock]]]></s4hana:entity>
+					</s4hana:create-entity>
+					<ee:transform doc:name="Create Locks - Response Transformation" doc:id="97f645c5-2f75-4e51-bdf9-68582efaf29b">
+						<ee:message>
+						</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="response"><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+
+fun formatDate(aDate: String): String = aDate as Date {format: "yyyy-MM-dd"} as String {format: "yyyyMMdd"}
+fun formatDateTime(aDate: String): String = aDate as Date {format: "yyyy-MM-dd"} as String {format: "yyyyMMddHHmmss"}
+
+---
+vars.response << 
+{
+	"Id" : vars.lockId,
+	"ALIA_LOOBJ__c" : if (isEmpty(payload.Tdate) or (payload.Tdate as String == "9999-12-31")) (payload.Vkont ++ payload.Gpart ++ "99991231000000")
+			else (payload.Vkont ++ payload.Gpart ++ formatDateTime(payload.Tdate)),
+	"ContractAccountID" : payload.Vkont,
+	"AccountID" : payload.Gpart,
+	"ContractID" : payload.Vertrag,
+	"ALIA_DOCNUM__c" : payload.DocNum,
+	"ALIA_LOCKR__c" : payload.Lockr,
+	"ALIA_PROID__c" : payload.Proid,
+	"ALIA_ABRSPERR__c" : payload.Abrsperr,
+	"ALIA_LOCKR_EndDate__c" : if (isEmpty(payload.Tdate) or (payload.Tdate as String == "9999-12-31")) null else formatDate(payload.Tdate),
+	"ALIA_LOCKR_StartDate__c" : if (isEmpty(payload.Fdate) or (payload.Fdate as String == "9999-12-31")) null else formatDate(payload.Fdate),  
+}
+]]></ee:set-variable>
+				</ee:variables>
+					</ee:transform>
+				</when>
+				<otherwise >
+					<logger level="INFO" doc:name="Logger" doc:id="944ef1af-97a6-487f-a3b8-3499f2acb6f4" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Updating Lock having key " ++ vars.lockKey ++ " with payload: " ++ write(vars.lock, "application/json")]'/>
+					<s4hana:update-entity doc:name="Update Lock" doc:id="17f900af-be9f-43a2-bdd2-c6594c726a50" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_LOCK_SRV" entityType="BlockOperationSet" >
+						<reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+						<s4hana:entity ><![CDATA[#[vars.lock]]]></s4hana:entity>
+					</s4hana:update-entity>
+					<ee:transform doc:name="Update Locks - Response Transformation" doc:id="b6f0bf9b-e9e9-47a6-b254-05ea5c401763" >
+						<ee:message >
+						</ee:message>
+						<ee:variables >
+							<ee:set-variable variableName="response" ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+
+fun formatDate(aDate: String): String = aDate as Date {format: "yyyy-MM-dd"} as String {format: "yyyyMMdd"}
+fun formatDateTime(aDate: String): String = aDate as Date {format: "yyyy-MM-dd"} as String {format: "yyyyMMddHHmmss"}
+
+---
+vars.response << 
+{
+	"Id" : vars.lockId,
+	"ALIA_LOOBJ__c" : if (isEmpty(payload.ALIA_LOCKR_EndDate__c)) (vars.lock.Vkont ++ vars.lock.Gpart ++ "99991231000000")
+			else (vars.lock.Vkont ++ vars.lock.Gpart ++ payload.ALIA_LOCKR_EndDate__c),
+	"ContractAccountID" : vars.lock.Vkont,
+	"AccountID" : vars.lock.Gpart,
+	"ContractID" : vars.lock.Vertrag,
+	"ALIA_DOCNUM__c" : vars.lock.DocNum,
+	"ALIA_LOCKR__c" : vars.lock.Lockr,
+	"ALIA_PROID__c" : vars.lock.Proid,
+	"ALIA_ABRSPERR__c" : vars.lock.Abrsperr,
+	"ALIA_LOCKR_EndDate__c" : payload.ALIA_LOCKR_EndDate__c,
+	"ALIA_LOCKR_StartDate__c" : payload.ALIA_LOCKR_StartDate__c
+}
+]]></ee:set-variable>
+						</ee:variables>
+					</ee:transform>
+				</otherwise>
+			</choice>
+			<logger level="INFO" doc:name="Logger" doc:id="14f9dc8c-24d6-421b-a738-391dfbffb5fb" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Lock successfully upserted - " ++ write(vars.response, "application/json")]' />
+		</foreach>
+		<set-payload value="#[vars.response]" doc:name="Set Payload" doc:id="88a3451b-47b9-4cb7-943b-a60c2a8be3b9" />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="a4f22434-2911-451a-a4d0-79f825ddf2d5" >
+				<logger level="ERROR" doc:name="Logger" doc:id="1207a9a6-4f10-482f-8245-708e1b187c63" message="Error updating Locks"/>
+				<ee:transform doc:name="Error Transform Message" doc:id="cdaa152e-0299-46df-bf73-3d88683558f9" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"error": {
+		"message": error.errorMessage,
+		"description": error.description,
+		"detailedDescription": error.detailedDescription,
+		"errorType": {
+			"identifier": error.errorType.identifier,
+			"namespace": error.errorType.namespace	
+		}
+	}
+}
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>	
+	
+	</mule>

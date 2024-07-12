@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:s4hana="http://www.mulesoft.org/schema/mule/s4hana" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s4hana/current/mule-s4hana.xsd">
+	<flow name="get-sanctionable-period-implFlow" doc:id="1a5744b5-db4a-4b08-96ed-b719a3077b73" >
+		<ee:transform doc:name="Transform Message" doc:id="a3c407d1-a33f-47d4-8471-3a6a92743097" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/java 
+---
+{
+  "Begru": payload.ALIA_Begru__c,
+  "DataCorrispettivo": payload.ALIA_CorrispettivoFromDate__c ++'T00:00:00',
+  "DataEvento": payload.ALIA_EINZDAT__c as Date {format: "yyyyMMdd"} as String {format: "yyyy-MM-dd"} ++ 'T00:00:00',
+  "DataPresentazione": payload.ALIA_REQUESTDATE__c as Date {format: "yyyyMMdd"} as String {format: "yyyy-MM-dd"} ++ 'T00:00:00'
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="42bc7ec5-5c14-412c-b96e-ca32adc4df00" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Check Sanction using payload: " ++ write(payload, "application/json")]'/>
+		<s4hana:execute-function doc:name="Execute function" doc:id="14cad0a0-ad37-4ca2-97db-286e01647fe3" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_PERIODO_SANZIONABILE_SRV" function="ZFC_PERIODO_SANZ"/>
+		<ee:transform doc:name="Transform Message" doc:id="58dab043-4e0e-4165-b4d7-2dd8dc7a16fb" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json 
+---
+{
+	("ALIA_EINZDAT__c": payload.DataInizioSanzione as Date {format: "yyyy-MM-dd"} as String {format: "yyyyMMdd"}) if ((!isEmpty(payload.DataInizioSanzione)) and (payload.DataInizioSanzione as String != "9999-12-31")),
+   ("ALIA_AUSZDAT__c": payload.DataFineSanzione as Date {format: "yyyy-MM-dd"} as String {format: "yyyyMMdd"}) if ((!isEmpty(payload.DataFineSanzione)) and (payload.DataFineSanzione as String != "9999-12-31")),
+	"CheckSanzione": payload.CheckSanzione 	
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="6f782812-cc55-4377-8ffa-d85288711a82" message="Check sanction successfully executed  - #[payload]"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="0b4a6f02-607d-4e3e-aab1-8dd54f9f051a" >
+				<logger level="ERROR" doc:name="Logger" doc:id="2af199db-6028-4f57-8832-5dd117b9a8f1" message="error creating sanctionable period"/>
+				<ee:transform doc:name="Transform Message" doc:id="3eb16ef3-edb5-494a-97dd-5e49e12fc04a" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"error": {
+		"message": error.errorMessage,
+		"description": error.description,
+		"detailedDescription": error.detailedDescription,
+		"errorType": {
+			"identifier": error.errorType.identifier,
+			"namespace": error.errorType.namespace	
+		}
+	}
+}
+
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

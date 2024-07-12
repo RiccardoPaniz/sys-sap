@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:s4hana="http://www.mulesoft.org/schema/mule/s4hana"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s4hana/current/mule-s4hana.xsd">
+	
+	<flow name="update-installation-implFlow" doc:id="cb98a60a-a89a-44a3-917e-cc3dcfca6d84" >
+		<set-variable value="#[payload]" doc:name="Installation" doc:id="338d70aa-2198-4ed0-835e-7aefd8ad40b3" variableName="installation"/>
+		<logger level="INFO" doc:name="Logger" doc:id="02a470d0-37b0-4ded-8bf3-953effaaa531" message="Get Installation by id #[vars.installation.ALIA_OLDKEY_Instl__c]"/>
+		<s4hana:get-entity doc:name="Get Installation by Id" doc:id="1175037e-46fe-4187-8ba1-4cd3846e6fbe" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_UMC_SRV" entityType="Installations">
+			<s4hana:key ><![CDATA[#[%dw 2.0
+output application/java
+---
+{
+	"InstallationID": vars.installation.ALIA_OLDKEY_Instl__c
+}]]]></s4hana:key>
+		</s4hana:get-entity>
+		<ee:transform doc:name="Payload2JSON" doc:id="5d78d43c-92a4-4ba5-a392-c375796b48a3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="74e66a65-3e96-4acc-a538-05ea5e5d4085" message="#['\n'] Comparing tariff types - SAP: #[payload.Tariftyp] - Salesforce: #[vars.installation.ALIA_TARIFTYP__c] #['\n']  Comparing ableinh - SAP: #[payload.Ableinh] - Salesforce: #[vars.installation.ALIA_ABLEINH__c]"/>
+		<choice doc:name="Choice" doc:id="051f9186-6fa5-4529-b34c-eab7730804d6" >
+			<when expression="#[vars.installation.ALIA_TARIFTYP__c == payload.Tariftyp and (payload.Ableinh == vars.installation.ALIA_ABLEINH__c or isEmpty(vars.installation.ALIA_ABLEINH__c))]">
+				<logger level="INFO" doc:name="Logger" doc:id="58802c9b-8ef9-4bd7-ae90-febd75f4db36" message="No update applied because the tariff type is not changed"/>
+				<set-payload value="#[payload]" doc:name="Set Payload" doc:id="e9fddb47-16bc-4b8b-b1da-2286daf7db8b" />
+			</when>
+			<otherwise >
+				<ee:transform doc:name="Update Installation - Request Transformation" doc:id="116b8ece-7ff2-46dd-b088-87ecabd6c4da">
+			<ee:message>
+				<ee:set-payload resource="dataweave/update-installation-request-transformation.dwl" />
+			</ee:message>
+		</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="4d6e16d0-51ce-499a-89fd-8454e694f75a" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Updating Installation with payload: " ++ write(payload, "application/json")]' />
+				<s4hana:update-entity doc:name="Update Installation" doc:id="ae9778f2-5405-4c07-adc8-ac99a16abc8d" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_UMC_SRV" entityType="Installations">
+			<reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}" />
+		</s4hana:update-entity>
+				<ee:transform doc:name="Payload2JSON" doc:id="36e0456a-c136-4e9c-ba4c-559f0dcb9d96">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="bc96f0c4-fbb8-4a9e-8c22-1cef65cc4b76" message="Installation successfully updated: #[payload]" />
+			</otherwise>
+		</choice>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="706f77fc-779d-46dd-bd52-106b5c30ad1a" >
+				<logger level="ERROR" doc:name="Logger" doc:id="0cc5cba7-bde1-493f-b963-04ed34b7a39f" message="Error updating Installation"/>
+				<ee:transform doc:name="Error Transform Message" doc:id="7b6c34ba-96dc-454c-bcb3-f11a71b3a5c0" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"error": {
+		"message": error.errorMessage,
+		"description": error.description,
+		"detailedDescription": error.detailedDescription,
+		"errorType": {
+			"identifier": error.errorType.identifier,
+			"namespace": error.errorType.namespace	
+		}
+	}
+}
+
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>	
+	
+	</mule>

@@ -1,0 +1,17 @@
+#%RAML 1.0 DataType
+displayName: Piano Rate
+description: Response for Piano Rate requests
+type: object
+additionalProperties: true
+properties:
+  status:
+    type: !include status.raml
+    required: false
+    description: Status
+    displayName: Status
+  recordList:
+    type: array
+    items: !include pianoRate_elem.raml
+    required: false
+    description: List of Piano Rate
+    displayName: List of Piano Rate

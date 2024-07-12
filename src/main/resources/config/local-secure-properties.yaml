@@ -1,0 +1,29 @@
+api:
+  client:
+    id:     "![5LJHTS0EFTWGiw5Nqr7knxFUMMiJszsqcMDt3KLloLSX8qKq3iDMKMTRCH8YaGRl]"
+    secret: "![uJXO8Qy8xmtoFKD/ddlRwpYixr2+TSlVXWkdn++OlllimrfUyRv+bneapqI4UfZt]"
+    
+  system:
+    tracing:
+      client_id: "![+algavJXitV7gyQCoQL12AugRg+boC3mJ8VMciySszbzYE1IXva75LPQ5ocqAx5erQGnPRkOauCZFGvbTwLfal5Dx9HBWXQy1X/+M2nbbogexCBbdTbR54E/YlLIpxdo]"
+      client_secret: "![oNUwXCt1UXIkWmmIS50ADzAhN+X1HU0/44EmIgJ/6SrAsXR2MK878BNNhzkDkGBGgQXiKdGcD75IJPZOTpCoF5PXtzJ31s/mDDCsUQVc4Xk=]"
+
+sap:
+  connection:
+
+#------------ QED ----------------
+#    password: "![HEk42U/0MeFmYb18tUGsZQ==]"
+#    client:
+#      secret: "yxb}m#/<GG<~>{uv<@V$L\\CeR$HN=g$Z9&t%a$["
+
+
+#------------ QET ----------------
+    password: "![AlftuaihExKlh3rBYJ+jxw==]"
+    client:
+#      secret: "foWtbCQZlNluz{~bnSUjcB</}eSaiDHpi/yaK9b{"
+      secret: "Jr@rhCG(Swu-o6kxeyzWViY~gUnWYtb(RPKEXnUz"
+
+#------------ QEP ----------------
+#    password: "![ACNfKetPrR5fxu/we99sqjjPNFQL++4xyoe0tqIZylQVKtM4myrqFS1DDpyTEBwK]"
+#    client:
+#      secret: "![ACNfKetPrR5fxu/we99sqjjPNFQL++4xyoe0tqIZylQVKtM4myrqFS1DDpyTEBwK]"

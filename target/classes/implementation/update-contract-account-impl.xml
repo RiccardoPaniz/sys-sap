@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:s4hana="http://www.mulesoft.org/schema/mule/s4hana"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s4hana/current/mule-s4hana.xsd">
+	
+	<flow name="update-contract-account-implFlow" doc:id="cb98a60a-a89a-44a3-917e-cc3dcfca6d84" >
+		<logger level="INFO" doc:name="Logger" doc:id="a2c04ba8-884e-4f95-9d18-add0181cceb8" message="Updating Contract Account"/>
+		<logger level="INFO" doc:name="Logger" doc:id="03d0bbbb-e3c5-4ddf-b549-ad6369e658dc" message="RequestFromProc: #[payload]"/>
+		<set-variable value="#[payload]" doc:name="Contract Account" doc:id="c6c7cc7f-fefd-44ba-97e7-acecfe080713" variableName="contractAccount"/>
+		<set-variable value="#[null]" doc:name="Account Address" doc:id="4f6defe3-89c3-41fb-afe3-ce91c86f4f66" variableName="accountAddress"/>
+		<flow-ref doc:name="upsert-bank-account-implFlow" doc:id="1631e392-e381-49ee-8c0c-d9500ed74521" name="upsert-bank-account-implFlow"/>
+		<flow-ref doc:name="upsert-account-address-implFlow" doc:id="a63b061c-71b5-4aad-a4c7-d7c9d9441055" name="upsert-account-address-implFlow"/>
+		<choice doc:name="Choice" doc:id="94b7e70a-72b8-4b5d-b659-1465d19b0721" >
+			<when expression='#[vars.contractAccount.ALIA_ICOM_SMTP_VERSTATUS_1__c == "verification_ok" or vars.contractAccount.ALIA_ICOM_SMTP_VERSTATUS_1__c == "verification_not_sync"]'>
+				<flow-ref doc:name="upsert-account-email-address-implFlow" doc:id="051891c8-c252-4195-ae02-2e9f7df18822" name="upsert-account-email-address-implFlow" />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="ea85a064-388f-4935-9e48-8aaf2ea3a336" message="Aggiornamento email non eseguito per mancanza di verifica nuovo indirizzo email"/>
+			</otherwise>
+		</choice>
+		<choice doc:name="Choice" doc:id="c6b3bb88-97c0-476e-bc0c-95d08e7a44d3" >
+			<when expression='#[(vars.contractAccount.ALIA_ICOM_SMTP_VERSTATUS_1__c != "verification_ok" and vars.contractAccount.ALIA_ICOM_SMTP_VERSTATUS_1__c != "verification_not_sync" ) and !isEmpty(vars.contractAccount.ALIA_ICOM_SMTP_ADDR_1__c)]'>
+				<flow-ref doc:name="get-contract-account-impl" doc:id="5e1f00ec-f222-4af3-806b-204e978e5dee" target="backupCA" name="get-contract-account-implFlow"/>
+			</when>
+		</choice>
+		<ee:transform doc:name="Update Contract Account - Response Transformation" doc:id="14d88e3e-6a99-4db3-bc63-8a33ea011dd2" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+import * from dw::core::Strings
+output application/json skipNullOn="everywhere"
+---
+{
+  "ContractAccountID" : vars.contractAccount.ALIA_OLDKEY__c,
+  ("AccountID" : vars.contractAccount.AccountID) if (!isEmpty(vars.contractAccount.AccountID)),
+  ("Description" : vars.contractAccount.ALIA_VKBEZ__c) if (!isEmpty(vars.contractAccount.ALIA_VKBEZ__c)),
+  ("Opbuk" : vars.contractAccount.ALIA_OPBUK__c) if (!isEmpty(vars.contractAccount.ALIA_OPBUK__c)),
+//commento valorizzazione campo "IncomingPaymentMethodID" da SF a SAP per TASK W-000879 [NTT] [MS] CR AMS - Modifica catena contrattuale - rimozione valorizzazione IncomingPaymentMethodID 
+//("IncomingPaymentMethodID" : vars.contractAccount.ALIA_EZAWE__c) if (!isEmpty(vars.contractAccount.ALIA_EZAWE__c)),
+  "OutgoingPaymentMethodID1" : if (isEmpty(vars.contractAccount.ALIA_AZAWE__c)) "" else vars.contractAccount.ALIA_AZAWE__c,
+  ("OutgoingPaymentBankAccountID" : vars.bankAccount.BankAccountID) if (!isEmpty(vars.bankAccount.BankAccountID)),
+  ("Mahnv" : vars.contractAccount.ALIA_MAHNV__c) if (!isEmpty(vars.contractAccount.ALIA_MAHNV__c)),
+  ("BillToAccountID" : vars.contractAccount.BillToAccountID) if (!isEmpty(vars.contractAccount.BillToAccountID)),
+  "BillToAccountAddressID" : if (isEmpty(vars.accountAddress.AddressID)) vars.contractAccount.ALIA_SHIPPING_ADDRESS_ID__c else vars.accountAddress.AddressID,
+  ("AccountID" : vars.contractAccount.AccountID) if (!isEmpty(vars.contractAccount.AccountID)),
+  ("AuthorizationGroup" : vars.contractAccount.ALIA_BEGRU__c) if (!isEmpty(vars.contractAccount.ALIA_BEGRU__c)),
+  (Zahlkond : vars.contractAccount.ALIA_ZAHLKOND__c) if (!isEmpty(vars.contractAccount.ALIA_ZAHLKOND__c)),
+  ("Vertyp" : vars.contractAccount.ALIA_VERTYP__c) if (!isEmpty(vars.contractAccount.ALIA_VERTYP__c)),
+  ("AccountDeterminationFeature" : vars.contractAccount.ALIA_KOFIZ_SD__c) if (!isEmpty(vars.contractAccount.ALIA_KOFIZ_SD__c)),
+  ("AccountClass" : vars.contractAccount.ALIA_KTOKL__c) if (!isEmpty(vars.contractAccount.ALIA_KTOKL__c)),
+  ("BusinessLocation" : vars.contractAccount.ALIA_BUPLA__c) if (!isEmpty(vars.contractAccount.ALIA_BUPLA__c)),
+  "SendcontrolGp": 
+    if (vars.backupCA != null) vars.backupCA.SendcontrolGp
+    else if (vars.contractAccount.Send_via_Email__c == true and (vars.contractAccount.ALIA_ICOM_SMTP_VERSTATUS_1__c == "verification_ok" or vars.contractAccount.ALIA_ICOM_SMTP_VERSTATUS_1__c == "verification_not_sync"))
+      (if (vars.contractAccount.ALIA_ICOM_SMTP_REMARK_1__c == "PEC") "0002" else "0003")
+    else "0001",
+  ("AccountAddressID" :
+  	if (vars.contractAccount.ALIA_SHIPPING_ADDRESS_ID__c == null) vars.accountAddress.AddressID else vars.contractAccount.ALIA_SHIPPING_ADDRESS_ID__c)
+  	if (!isEmpty(vars.accountAddress.AddressID) or !isEmpty(vars.contractAccount.ALIA_SHIPPING_ADDRESS_ID__c)),
+//  ("BankAccountID" : payload.ALIA_BKVID__c) if (!isEmpty(payload.ALIA_BKVID__c))
+    ("InterestKey" : vars.contractAccount.ALIA_INTEREST_KEY__c) if (!isEmpty(vars.contractAccount.ALIA_INTEREST_KEY__c)),
+  ("NomeIntIban": vars.contractAccount.ALIA_NomeIntestatarioIban__c) if (!isEmpty(vars.contractAccount.ALIA_NomeIntestatarioIban__c)),
+  ("CognomeIntIban": vars.contractAccount.ALIA_CognomeIntestatarioIban__c) if (!isEmpty(vars.contractAccount.ALIA_CognomeIntestatarioIban__c)),
+  ("CfIntIban": vars.contractAccount.ALIA_CodiceFiscaleIntestatarioIban__c) if (!isEmpty(vars.contractAccount.ALIA_CodiceFiscaleIntestatarioIban__c)),
+  ("RsocIbanName": vars.contractAccount.ALIA_RagioneSocialeIntestatarioIban__c) if (!isEmpty(vars.contractAccount.ALIA_RagioneSocialeIntestatarioIban__c)),
+  ("TaxNumIban": if (substring(vars.contractAccount.ALIA_PartIvaIntestIban__c, 0, 2) == "IT")
+  	                substringAfter(vars.contractAccount.ALIA_PartIvaIntestIban__c, "IT")
+                 else
+                    vars.contractAccount.ALIA_PartIvaIntestIban__c) if (!isEmpty(vars.contractAccount.ALIA_PartIvaIntestIban__c)),
+  ("EredeIban": if (vars.contractAccount.ALIA_Erede__c==true)
+  					"Si"
+  				 else
+  				 	"No"  	
+  ) if (!isEmpty(vars.contractAccount.ALIA_Erede__c))
+   
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="3c47a78f-42e3-425a-876e-5a3aa875b63e" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Updating Contract Account using payload: " ++ write(payload, "application/json")]' />
+		<try doc:name="Try" doc:id="223d52c3-66ee-4da9-aa8e-a9234f9367c8" >
+			<s4hana:update-entity doc:name="Update Contract Account" doc:id="c81c957c-fe1b-4918-9ba7-adf6dd44e686" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_UMC_SRV" entityType="ContractAccounts">
+			<reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}" />
+		</s4hana:update-entity>
+		<error-handler >
+				<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="56206a62-f752-400e-ac45-6e9a14d669d0" when='error.description contains "INT_MULE_ISU"'>
+					<flow-ref doc:name="manage-errorFlow and SV originalError" doc:id="a741ef12-0879-408d-a255-dd818af8c6fc" name="manage-errorFlow" target="originalError"/>
+					<until-successful maxRetries="2" doc:name="Until Successful" doc:id="5dcb2b68-bebf-4727-b413-6c35c6005997" millisBetweenRetries="5000">
+					<s4hana:update-entity doc:name="Update Contract Account" doc:id="119e5e2d-e490-4731-b234-2f65b28665da" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_UMC_SRV" entityType="ContractAccounts">
+			<reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}" />
+		</s4hana:update-entity>
+					</until-successful>
+					<remove-variable doc:name="Remove Variable" doc:id="b8c2d857-0b5e-4d1f-8e90-def8d9cabe2b" variableName="originalError"/>
+				</on-error-continue>
+			</error-handler>
+		</try>
+		<logger level="INFO" doc:name="Logger" doc:id="e37e5281-f2dd-48d7-87e5-d29e5000e9d0" message="Response SAP Update Contract Account: #[payload]"/>
+		<ee:transform doc:name="Update Contract Account - Response Transformation" doc:id="d830ecec-0724-44e8-a2b3-31df61bb6fd5" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"ALIA_ContractAccountAddressId__c" : payload.AccountAddressID,
+	"ALIA_OLDKEY__c" : payload.ContractAccountID,
+	"ALIA_OPBUK__c" : payload.Opbuk,
+	"ALIA_EZAWE__c" : payload.IncomingPaymentMethodID,
+	"ALIA_AZAWE__c" : payload.OutgoingPaymentMethodID1,
+	"ALIA_MAHNV__c" : payload.Mahnv,
+	"ALIA_ZAHLKOND__c" : payload.Zahlkond,
+	"ALIA_VERTYP__c" : payload.Vertyp,
+	"ALIA_KOFIZ_SD__c" : payload.AccountDeterminationFeature,
+	"ALIA_BUPLA__c" : payload.BusinessLocation,
+	"ALIA_BKVID__c" : vars.bankAccount.BankAccountID,
+	"ALIA_SHIPPING_ADDRESS_ID__c" : vars.accountAddress.AddressID
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<choice doc:name="Choice" doc:id="57f154cd-4c4f-4424-ac62-fbb3f1fbe42a" >
+			<when expression="#[!isEmpty(vars.contractAccount.ALIA_SDI_IPA__c)]">
+				<flow-ref doc:name="upsert-contract-account-sdiIlpaCigCup-implFlow" doc:id="14c66cd1-1818-4ef5-8d6c-4eddcac2386b" name="upsert-contract-account-sdiIlpaCigCup-implFlow" target="SdiIlpaCigCupResponse" />
+			</when>
+			<otherwise >
+				<logger level="INFO" doc:name="Logger" doc:id="e511a80d-4c33-4695-8739-3eaf79eee95c" message="no need to upsert contract-account-sdiIlpaCigCup"/>
+			</otherwise>
+		</choice>
+		<logger level="INFO" doc:name="Logger" doc:id="bf4c2a82-317b-4d88-8b82-daa601e179c8" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Contract Account successfully updated - " ++ write(payload, "application/json")]' />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="706f77fc-779d-46dd-bd52-106b5c30ad1a" >
+				<logger level="ERROR" doc:name="Logger" doc:id="da249bdd-0d4a-4f7e-9250-7384dc6137b6" message="Error updating Contract Account"/>
+				<ee:transform doc:name="Error Transform Message" doc:id="7b6c34ba-96dc-454c-bcb3-f11a71b3a5c0" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"error": {
+		"message": error.errorMessage,
+		"description": error.description,
+		"detailedDescription": error.detailedDescription,
+		"errorType": {
+			"identifier": error.errorType.identifier,
+			"namespace": error.errorType.namespace	
+		}
+	}
+}
+
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>	
+	
+	</mule>

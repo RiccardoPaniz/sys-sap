@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:s4hana="http://www.mulesoft.org/schema/mule/s4hana" xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s4hana/current/mule-s4hana.xsd">
+	<flow name="get-contract-implFlow" doc:id="6be9ed99-28c2-40e0-871c-68503be816a4" >
+		<logger level="INFO" doc:name="Logger" doc:id="fb970b08-1664-4be9-8e93-97e0d3bbcd70" message='#["Get Contract by ContractID:" ++ vars.contractId]'/>
+		<s4hana:get-entity doc:name="Get entity by key" doc:id="572f493c-2570-4832-baba-56fd96df2a78" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_UMC_SRV" entityType="Contracts">
+			<s4hana:key ><![CDATA[#[{
+	ContractID: vars.contractId
+}]]]></s4hana:key>
+		</s4hana:get-entity>
+		<ee:transform doc:name="Transform Message" doc:id="8f39f259-4934-4a85-b9cc-97469fbba5d3" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  ("ALIA_OLDKEY__c" :  payload.ContractID),
+  ("ALIA_KOZIF__c" : payload.Kofiz) if (payload.Kofiz != null),
+  ("ALIA_GEMFCAT__c" : payload.Gemfakt) if (payload.Gemfakt != null),
+  ("ALIA_VBEZ__c" : payload.Description) if (payload.Description != null),
+  "ALIA_VREFER__c" : payload.Vrefer,
+  "ALIA_BEGRU__c" : payload.Begru,
+  ("ALIA_OLDKEY_Premise__c" : payload.PremiseID) if (payload.PremiseID != null),
+  ("ALIA_OLDKEY_Instl__c" : payload.Anlage) if (payload.Anlage != null),
+  ("ContractAccountID" : payload.ContractAccountID) if (payload.ContractAccountID != null),
+  ("ALIA_EINZDAT__c" : payload.MoveInDate as Date as String {format: "yyyyMMdd"}) if (!isEmpty(payload.MoveInDate)),
+  ("ALIA_AUSZDAT__c" : payload.MoveOutDate as Date as String {format: "yyyyMMdd"}) if (!isEmpty(payload.MoveOutDate)),
+  ("ALIA_COKEY__c" : payload.Cokey) if (payload.Cokey != null),
+  ("ALIA_ZZACCODASS__c" : payload.Zaccodass) if (payload.Zaccodass != null),
+  ("ALIA_ZZACDTBLR__c" :  payload.Zzacdtblr as Date {format: "yyyyMMdd"} as String {format: "yyyy-MM-dd"} ++ 'T00:00:00') if (!isEmpty(payload.Zzacdtblr)),
+  "ALIA_ZZCONFCAT__c" : payload.Zzconfcat,
+  ("ALIA_ABRSPERR__c" : payload.Abrsperr) if (payload.Abrsperr != null),
+  ("ALIA_BUKRS__c" : payload.Bukrs) if (payload.Bukrs != null)
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="046eaf86-6db6-406e-b162-df63269ae4c3" message="Contract got: #[payload]" />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="ac5f2577-17f9-4da1-936d-066f1c93ce10" >
+				<logger level="ERROR" doc:name="Logger" doc:id="9072dedf-e58c-4540-8691-1a177dca307f" message="Error retrieving Contract"/>
+				<ee:transform doc:name="Error Transform Message" doc:id="09c7a65a-9274-489d-bfb7-3f099c8d3044" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"error": {
+		"message": error.errorMessage,
+		"description": error.description,
+		"detailedDescription": error.detailedDescription,
+		"errorType": {
+			"identifier": error.errorType.identifier,
+			"namespace": error.errorType.namespace	
+		}
+	}
+}
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

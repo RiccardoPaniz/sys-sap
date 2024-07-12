@@ -1,0 +1,199 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:s4hana="http://www.mulesoft.org/schema/mule/s4hana"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s4hana/current/mule-s4hana.xsd">
+	
+	<flow name="upsert-land-register-data-implFlow" doc:id="cb98a60a-a89a-44a3-917e-cc3dcfca6d84" >
+		<logger level="INFO" doc:name="Logger" doc:id="8ab6941a-eaaf-4c83-a3f0-24f00d3efdea" message="Creating Land Register Data"/>
+		<set-variable value="#[%dw 2.0&#10;output application/json&#10;---&#10;[]]" doc:name="Response" doc:id="878a6b4b-fe0b-4bf0-9d71-b09a5b98dba4" variableName="response"/>
+		<foreach doc:name="For Each" doc:id="959a6403-9493-438f-b3cd-64b40f7cf01a" collection="payload">
+			<ee:transform doc:name="Land Register Data" doc:id="f4581366-b27c-4722-a529-22c828f599d4">
+			<ee:message>
+			</ee:message>
+				<ee:variables >
+					<ee:set-variable variableName="landRegisterData" ><![CDATA[%dw 2.0
+output application/java
+
+---
+{
+  "Vstelle" : payload.ALIA_OLDKEY_Premise__c,
+  "Tipo_Dip" : payload.ALIA_TIPO_DIP__c,  
+  "Prog" : payload.ALIA_PROG__c,
+  "Bis" : if (payload.ALIA_BIS__c == null) "9999-12-31T00:00:00" else (payload.ALIA_BIS__c as Date {format: "yyyyMMdd"} as String {format: "yyyy-MM-dd"} ++ 'T00:00:00'),
+  ("Ab" :  payload.ALIA_AB__c as Date {format: "yyyyMMdd"} as String {format: "yyyy-MM-dd"} ++ 'T00:00:00') if (payload.ALIA_AB__c != null),
+  ("ZsezUrb" : payload.ALIA_ZSEZ_URB__c) if (payload.ALIA_ZSEZ_URB__c != null),
+  ("Zfoglio" : payload.ALIA_ZFOGLIO__c) if (payload.ALIA_ZFOGLIO__c != null),
+  ("Zpart" : payload.ALIA_ZPART__c) if (payload.ALIA_ZPART__c != null),
+  ("Zpartst" : payload.ALIA_ZPARTST__c) if (payload.ALIA_ZPARTST__c != null),
+//  ("Ztipopar" : payload.ALIA_ZTIPOPAR__c) if (payload.ALIA_ZTIPOPAR__c != null),
+  ("Zsubal" : payload.ALIA_ZSUBAL__c) if (payload.ALIA_ZSUBAL__c != null),
+  ("ZnoAcca" : payload.ALIA_ZNO_ACCA__c) if (payload.ALIA_ZNO_ACCA__c != null),
+  ("ZnoAccle" : payload.ALIA_ZNO_ACCLE__c) if (payload.ALIA_ZNO_ACCLE__c != null),
+  ("Zvani" : payload.ALIA_ZVANI__c as Number) if (payload.ALIA_ZVANI__c != null),
+  ("Zcateg" : payload.ALIA_ZCATEG__c) if (payload.ALIA_ZCATEG__c != null),
+  ("Zsupcat" : payload.ALIA_ZSUPCAT__c) if (payload.ALIA_ZSUPCAT__c != null),
+  ("ZsupcatImp" : payload.ALIA_ZSUPCAT_IMP__c) if (payload.ALIA_ZSUPCAT_IMP__c != null)
+}]]></ee:set-variable>
+				</ee:variables>
+		</ee:transform>
+			<set-variable value="#[payload.Id]" doc:name="Land Register Data Id" doc:id="d149f395-94e7-4bf1-8d4a-e2681adf7d26" variableName="landRegisterDataId"/>
+			<logger level="INFO" doc:name="Logger" doc:id="e7117a0d-f94c-4ba5-84f2-be944ad7a9b3" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Search for land register data with payload - " ++ write(vars.landRegisterDataKey, "application/json")]' />
+			<s4hana:query doc:name="Get Land Register Data" doc:id="b6e22bf6-5a24-4a63-9543-e66f580dc7aa" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_EVBS_CATTIA_SRV" entityType="IsuUnitCatSet" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" filter="#[&quot;Vstelle eq '&quot; ++ vars.landRegisterData.Vstelle ++ &quot;' and Tipo_Dip eq '&quot; ++ vars.landRegisterData.Tipo_Dip ++ &quot;' and Prog eq '&quot; ++ vars.landRegisterData.Prog ++ &quot;' and Bis eq datetime'&quot; ++ vars.landRegisterData.Bis ++ &quot;'&quot;]">
+				<reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+			</s4hana:query>
+			<choice doc:name="Choice" doc:id="913b5a90-54bf-4c55-8e47-306db88a5c3e" >
+				<when expression="#[payload == null or payload == []]">
+					<logger level="INFO" doc:name="Logger" doc:id="73356ed2-ece3-4e8a-a2a7-b8a7030730c1" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Creating Land Register Data with payload - " ++ write(vars.landRegisterData, "application/json")]' />
+					<s4hana:create-entity doc:name="Create Land Register Data" doc:id="4d215506-c858-42d1-a89d-4209d154ddca" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_EVBS_CATTIA_SRV" entityType="IsuUnitCatSet" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS">
+						<reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+						<s4hana:entity ><![CDATA[#[vars.landRegisterData]]]></s4hana:entity>
+					</s4hana:create-entity>
+					<ee:transform doc:name="Upsert Land Register Data - Response Transformation" doc:id="6422448c-e80d-4859-855c-18e5e845c0a2">
+				<ee:message>
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="response"><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+
+
+---
+vars.response << 
+{
+	"Id" : vars.landRegisterDataId,
+	"ALIA_OLDKEY__c" : if (isEmpty(payload.Bis) or payload.Bis == "9999-12-31") payload.Vstelle ++ "_" ++ payload.Tipo_Dip ++ "_" ++ payload.Prog ++ "_" ++ "99991231"
+					   else payload.Vstelle ++ "_" ++ payload.Tipo_Dip ++ "_" ++ payload.Prog ++ "_" ++ payload.Bis as Date {format: "yyyy-MM-dd"} as String {format: "yyyyMMdd"},
+//	7000025933_A1_01_99991231
+	"ALIA_OLDKEY_Premise__c" : payload.Vstelle,
+	"ALIA_TIPO_DIP__c" : payload.Tipo_Dip,
+	"ALIA_PROG__c" : payload.Prog,
+	"ALIA_BIS__c" : if (isEmpty(payload.Bis) or payload.Bis == "9999-12-31") null else payload.Bis as Date {format: "yyyy-MM-dd"} as String {format: "yyyyMMdd"},
+	"ALIA_AB__c" : if (isEmpty(payload.Ab) or payload.Ab == "9999-12-31") null else payload.Ab as Date {format: "yyyy-MM-dd"} as String {format: "yyyyMMdd"},
+	"ALIA_ZSEZ_URB__c" : payload.ZsezUrb,
+	"ALIA_ZFOGLIO__c" : payload.Zfoglio,
+	"ALIA_ZPART__c" : payload.Zpart,
+	"ALIA_ZPARTST__c" : payload.Zpartst,
+	"ALIA_ZTIPOPAR__c" : payload.Ztipopar,
+	"ALIA_ZSUBAL__c" : payload.Zsubal,
+	"ALIA_ZNO_ACCA__c" : payload.ZnoAcca,
+	"ALIA_ZNO_ACCLE__c" : payload.ZnoAccle,
+	"ALIA_ZVANI__c" : payload.Zvani,
+	"ALIA_ZCATEG__c" : payload.Zcateg,
+	"ALIA_ZSUPCAT__c" : payload.Zsupcat,
+	"ALIA_ZSUPCAT_IMP__c" : payload.ZsupcatImp
+}
+]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+				</when>
+				<otherwise >
+					<ee:transform doc:name="Create Land Register Data Key" doc:id="c10d09ce-8560-4b13-b46f-c70013f24584">
+				<ee:message>
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="landRegisterDataKey"><![CDATA[%dw 2.0
+import * from dw::util::Timer
+output application/json skipNullOn="everywhere"
+---
+
+{
+  "Vstelle" : vars.landRegisterData.Vstelle,
+  "Tipo_Dip" : vars.landRegisterData.Tipo_Dip,
+  "Prog" : vars.landRegisterData.Prog,
+  "Bis" : toMilliseconds(vars.landRegisterData.Bis)
+}]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+					<ee:transform doc:name="Update Land Register Data - Request Transformation" doc:id="263d42bb-72d3-4c3d-9df9-954230f55c2a">
+						<ee:message>
+							<ee:set-payload><![CDATA[%dw 2.0
+import * from dw::util::Timer
+output application/json skipNullOn="everywhere"
+---
+
+vars.landRegisterData - "Bis"
+++ {
+	  "Bis" : toMilliseconds(vars.landRegisterData.Bis)
+}
+]]></ee:set-payload>
+						</ee:message>
+					</ee:transform>
+					<logger level="INFO" doc:name="Logger" doc:id="4d6e16d0-51ce-499a-89fd-8454e694f75a" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Updating Land Register Data having key " ++ write(vars.landRegisterDataKey, "application/json") ++ " using payload " ++ write(payload, "application/json")]' />
+					<s4hana:update-entity doc:name="Update Land Register Data" doc:id="447b149d-3695-41c4-81b0-c69ba1b36558" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_EVBS_CATTIA_SRV" entityType="IsuUnitCatSet" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS">
+						<reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+						<s4hana:custom-query-params >
+							<s4hana:custom-query-param key="Vstelle" value="#[vars.landRegisterDataKey.Vstelle]" />
+							<s4hana:custom-query-param key="Tipo_Dip" value="#[vars.landRegisterDataKey.Tipo_Dip]" />
+							<s4hana:custom-query-param key="Prog" value="#[vars.landRegisterDataKey.Prog]" />
+							<s4hana:custom-query-param key="Bis" value="#[vars.landRegisterDataKey.Bis]" />
+						</s4hana:custom-query-params>
+					</s4hana:update-entity>
+					<ee:transform doc:name="Upsert Land Register Data - Response Transformation" doc:id="ce32bd9a-9657-4d67-a28e-0ba084d06710">
+				<ee:message>
+				</ee:message>
+				<ee:variables>
+					<ee:set-variable variableName="response"><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+
+---
+vars.response << 
+{
+	"Id" : vars.landRegisterDataId,
+	"ALIA_OLDKEY__c" : if (isEmpty(payload.Bis) or payload.Bis == "9999-12-31T00:00:00") payload.Vstelle ++ "_" ++ payload.Tipo_Dip ++ "_" ++ payload.Prog ++ "_" ++ "99991231"
+					   else payload.Vstelle ++ "_" ++ payload.Tipo_Dip ++ "_" ++ payload.Prog ++ "_" ++ payload.Bis as DateTime {unit: "milliseconds"} as String {format: "yyyyMMdd"},
+	"ALIA_OLDKEY_Premise__c" : payload.Vstelle,
+	"ALIA_TIPO_DIP__c" : payload.Tipo_Dip,
+	"ALIA_PROG__c" : payload.Prog,
+	"ALIA_BIS__c" : if (isEmpty(payload.Bis) or payload.Bis == "9999-12-31T00:00:00") null else payload.Bis as DateTime {unit: "milliseconds"} as String {format: "yyyyMMdd"},
+	"ALIA_AB__c" : if (isEmpty(payload.Ab) or payload.Ab == "9999-12-31T00:00:00") null else payload.Ab as Date {format: "yyyy-MM-dd'T'HH:mm:ss"} as String {format: "yyyyMMdd"},
+	"ALIA_ZSEZ_URB__c" : payload.ZsezUrb,
+	"ALIA_ZFOGLIO__c" : payload.Zfoglio,
+	"ALIA_ZPART__c" : payload.Zpart,
+	"ALIA_ZPARTST__c" : payload.Zpartst,
+	"ALIA_ZTIPOPAR__c" : payload.Ztipopar,
+	"ALIA_ZSUBAL__c" : payload.Zsubal,
+	"ALIA_ZNO_ACCA__c" : payload.ZnoAcca,
+	"ALIA_ZNO_ACCLE__c" : payload.ZnoAccle,
+	"ALIA_ZVANI__c" : payload.Zvani,
+	"ALIA_ZCATEG__c" : payload.Zcateg,
+	"ALIA_ZSUPCAT__c" : payload.Zsupcat,
+	"ALIA_ZSUPCAT_IMP__c" : payload.ZsupcatImp
+}
+]]></ee:set-variable>
+				</ee:variables>
+			</ee:transform>
+				</otherwise>
+			</choice>
+			<logger level="INFO" doc:name="Logger" doc:id="bc96f0c4-fbb8-4a9e-8c22-1cef65cc4b76" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Land Register Data successfully upserted - " ++ write(vars.response, "application/json")]' />
+		</foreach>
+		<set-payload value="#[vars.response]" doc:name="Set Payload" doc:id="85ba240c-30a1-45e0-ade5-b45deda60725" />
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="706f77fc-779d-46dd-bd52-106b5c30ad1a" >
+				<logger level="ERROR" doc:name="Logger" doc:id="945a8eec-82bd-463e-b718-ea4453687686" message="Error creationg Land Register Data"/>
+				<ee:transform doc:name="Error Transform Message" doc:id="7b6c34ba-96dc-454c-bcb3-f11a71b3a5c0" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"error": {
+		"message": error.errorMessage,
+		"description": error.description,
+		"detailedDescription": error.detailedDescription,
+		"errorType": {
+			"identifier": error.errorType.identifier,
+			"namespace": error.errorType.namespace	
+		}
+	}
+}
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>	
+	
+	</mule>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:s4hana="http://www.mulesoft.org/schema/mule/s4hana"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s4hana/current/mule-s4hana.xsd">
+	
+	<flow name="update-premise-implFlow" doc:id="cb98a60a-a89a-44a3-917e-cc3dcfca6d84" >
+		<ee:transform doc:name="Update Premise - Request Transformation" doc:id="116b8ece-7ff2-46dd-b088-87ecabd6c4da" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+{
+  "PremiseID" : payload.ALIA_OLDKEY_Premise__c,
+  ("Haus" : payload.ALIA_OLDKEY_Adr__c) if (!isEmpty(payload.ALIA_OLDKEY_Adr__c)),
+  ("HausNum2" : payload.ALIA_HOUSE_NUM2__c) if (!isEmpty(payload.ALIA_HOUSE_NUM2__c)),
+  ("Lgzusatz": payload.ALIA_LGZUSATZ__c) if (!isEmpty(payload.ALIA_LGZUSATZ__c)),
+  ("Begru" : payload.ALIA_BEGRU__c) if (!isEmpty(payload.ALIA_BEGRU__c)),
+  "Zfoglio" : payload.ALIA_ZFOGLIO__c default "",
+  "Zpart" : payload.ALIA_ZPART__c default "",
+  "Zpartst" : payload.ALIA_ZPARTST__c default "",
+  "Ztipopar" : payload.ALIA_ZTIPOPAR__c default "",
+  "Zsubal" : payload.ALIA_ZSUBAL__c default "",
+  "ZnoAcca" : payload.ALIA_ZNO_ACCA__c default "",
+  "ZnoAccle" : payload.ALIA_ZNO_ACCLE__c default "",
+  ("Zziduab" : payload.ALIA_ZZIDUAB__c) if (!isEmpty(payload.ALIA_ZZIDUAB__c)),
+  ("Zzukcivico" : payload.ALIA_ZZUKCIVICO__c) if (!isEmpty(payload.ALIA_ZZUKCIVICO__c)),
+  ("Zzukregion" : payload.ALIA_ZZUKREGIONE__c) if (!isEmpty(payload.ALIA_ZZUKREGIONE__c)),
+  "ZsezUrb" : payload.ALIA_ZSEZ_URB__c default ""
+}]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="4d6e16d0-51ce-499a-89fd-8454e694f75a" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Updating Premise with payload: " ++ write(payload, "application/json")]' />
+		<s4hana:update-entity doc:name="Update Premises" doc:id="775de084-7ecb-4ced-8d9e-b9b364dd0dd8" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_UMC_SRV" entityType="Premises">
+			<reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+		</s4hana:update-entity>
+		<ee:transform doc:name="Payload2JSON" doc:id="b666a5e6-de7d-40a6-8709-06e734d6e057" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="ec533d8c-53fc-4ae2-87d8-e0bbca6c9e7d" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Premise successfully updated - " ++ write(payload, "application/json")]'/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="706f77fc-779d-46dd-bd52-106b5c30ad1a" >
+				<logger level="ERROR" doc:name="Logger" doc:id="3332d461-3e0f-4b99-884e-cf694c266813" message="Error updating Premise"/>
+				<ee:transform doc:name="Error Transform Message" doc:id="7b6c34ba-96dc-454c-bcb3-f11a71b3a5c0" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"error": {
+		"message": error.errorMessage,
+		"description": error.description,
+		"detailedDescription": error.detailedDescription,
+		"errorType": {
+			"identifier": error.errorType.identifier,
+			"namespace": error.errorType.namespace	
+		}
+	}
+}
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>	
+	
+	</mule>

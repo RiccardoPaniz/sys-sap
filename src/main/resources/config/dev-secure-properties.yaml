@@ -1,0 +1,17 @@
+api:
+  client:
+    id:     "![5LJHTS0EFTWGiw5Nqr7knxFUMMiJszsqcMDt3KLloLSX8qKq3iDMKMTRCH8YaGRl]"
+    secret: "![uJXO8Qy8xmtoFKD/ddlRwpYixr2+TSlVXWkdn++OlllimrfUyRv+bneapqI4UfZt]"
+    
+  system:
+    tracing:
+      client_id: "![+algavJXitV7gyQCoQL12AugRg+boC3mJ8VMciySszbzYE1IXva75LPQ5ocqAx5erQGnPRkOauCZFGvbTwLfal5Dx9HBWXQy1X/+M2nbbogexCBbdTbR54E/YlLIpxdo]"
+      client_secret: "![oNUwXCt1UXIkWmmIS50ADzAhN+X1HU0/44EmIgJ/6SrAsXR2MK878BNNhzkDkGBGgQXiKdGcD75IJPZOTpCoF5PXtzJ31s/mDDCsUQVc4Xk=]"
+
+sap:
+  connection:
+    password: "![HEk42U/0MeFmYb18tUGsZQ==]"
+    client:
+      secret: "rk+$Rz<Vbx{})+5dWm&{~YQdHRwP{X%S+G=Psy)U"
+
+    

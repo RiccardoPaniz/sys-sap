@@ -1,0 +1,27 @@
+#%RAML 1.0 DataType
+displayName: accounting-transfer
+description: accounting-transfer Data Type
+type: object
+additionalProperties: false
+
+properties:
+  ContoContrattualeOld:
+    type: string
+    required: true
+    example: "200000002602"
+  ContoContrattualeNew:
+    type: string
+    required: true
+    example: "200000002602"
+  ContrattoNew:
+    type: string
+    required: true
+    example: "3000002851"
+  ContrattoOld:
+    type: string
+    required: true
+    example: "200000002602"
+  MotivoTrasferimento:
+    type: string
+    required: true
+    example: "T1"

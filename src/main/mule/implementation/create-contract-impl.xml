@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:s4hana="http://www.mulesoft.org/schema/mule/s4hana"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s4hana/current/mule-s4hana.xsd">
+	
+	<flow name="create-contract-implFlow" doc:id="cb98a60a-a89a-44a3-917e-cc3dcfca6d84" >
+		<ee:transform doc:name="Create Contract - Request Transformation" doc:id="116b8ece-7ff2-46dd-b088-87ecabd6c4da" >
+			<ee:message >
+				<ee:set-payload resource="dataweave/create-contract-request-transformation.dwl" />
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="4d6e16d0-51ce-499a-89fd-8454e694f75a" message='#[%dw 2.0&#10;output text/plain&#10;---&#10;"Creating Contract using payload: " ++ write(payload, "application/json")]' />
+		<s4hana:create-entity doc:name="Create Contract" doc:id="7721c52b-d887-4ed6-bef4-8863fe3d15da" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_UMC_SRV" entityType="Contracts">
+		    <reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+			<s4hana:entity ><![CDATA[#[%dw 2.0
+output application/java
+---
+payload]]]></s4hana:entity>
+		</s4hana:create-entity>
+		<ee:transform doc:name="Create Contract - Response Transformation" doc:id="e7f4d73a-ed22-4bb4-94f8-b281126b16a7" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+
+fun transformContract(contractSAP) = {
+	"ALIA_OLDKEY__c" : contractSAP.ContractID,
+	"ALIA_KOZIF__c" : contractSAP.Kofiz,
+	"ALIA_GEMFCAT__c" : contractSAP.Gemfakt,
+	"ALIA_VBEZ__c" : contractSAP.Description,
+	"ALIA_VREFER__c" : contractSAP.Vrefer,
+	"ALIA_BEGRU__c" : contractSAP.Begru,
+	("ALIA_EINZDAT__c" : contractSAP.MoveInDate as Date {format: "yyyy-MM-dd"} as String {format: "yyyyMMdd"}) if ((!isEmpty(contractSAP.MoveInDate)) and (contractSAP.MoveInDate as String != "9999-12-31")),
+	("ALIA_AUSZDAT__c" : contractSAP.MoveOutDate as Date {format: "yyyy-MM-dd"} as String {format: "yyyyMMdd"}) if ((!isEmpty(contractSAP.MoveInDate)) and (contractSAP.MoveInDate as String != "9999-12-31")),
+	//"ALIA_COKEY__c" : contractSAP.Cokey, 
+	"ALIA_ZZACCODASS__c" : contractSAP.Zaccodass,
+	("ALIA_ZZACDTBLR__c" : contractSAP.Zzacdtblr as Date {format: "yyyy-MM-dd"} as String {format: "yyyyMMdd"}) if ((!isEmpty(contractSAP.Zzacdtblr)) and (contractSAP.Zzacdtblr as String != "9999-12-31")),
+	"ALIA_ZZCONFCAT__c" : contractSAP.Zzconfcat,
+	"ALIA_ABRSPERR__c" : contractSAP.Abrsperr,
+	"ALIA_MotivoAttivazione__c" : contractSAP.Zzmotatt
+}
+
+---
+
+if ((typeOf(payload) as String) == "Array") (
+	if (sizeOf(payload) == 1) transformContract(payload[0])
+	else [
+		transformContract(payload[0]),
+		transformContract(payload[1])
+	]
+) else transformContract(payload)
+
+// ci potrebbe essere la necessità di
+// mergiare due contratti, nel caso del
+// cosiddetto "contratti Evasione/Elusione"
+
+// in SF viene creato un contratto con data di inizio nel passato e ID = xyz
+// Mulesoft invia il contratto a SAP
+// SAP risponde con 2 Contratti
+// il contratto originario xyz con data inizio contratto aggiornata
+// un nuovo contratto con data inizio e fine precedenti alla data di inizio del contratto originario xyz
+// Mulesoft dovrebbe prendere i valori di alcuni campi del contratto al punto 3.2 e valorizzare dei campi nel contratto xyz, inoltre deve prendere la nuova data di inizio di xyz e restituire al SF il contratto aggiornato con la nuova data e i nuovi campi
+
+
+// - i valori di alcuni campi del contratto xyz dovranno essere aggiornati in base agli stessi campi del nuovo contratto indicato da SAP
+// - il valore della data di inizio del contratto xyz viene aggiornata da SAP
+
+// Mulesoft eseguirà quindi l'aggiornamento del contratto xyz in SF, nel quale la data di inizio sarà quella indicata da SAP, mentre gli altri campi saranno valorizzati
+// copiandoli dal secondo contratto che SAP invia come risposta. GP: Corretto
+// Il secondo contratto inviato da SAP non dovrà essere inviato a SF? GP: No, basta valorizzare alcuni campi in xyz con i valori del secondo contratto 
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="bc96f0c4-fbb8-4a9e-8c22-1cef65cc4b76" message="Contract successfully created - #[payload]"/>
+		<error-handler >
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="706f77fc-779d-46dd-bd52-106b5c30ad1a" >
+				<logger level="ERROR" doc:name="Logger" doc:id="3d101ca0-1c12-44c0-a053-04429e0e363c" message="Error creating Contract"/>
+				<ee:transform doc:name="Error Transform Message" doc:id="7b6c34ba-96dc-454c-bcb3-f11a71b3a5c0" >
+					<ee:message >
+						<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+{
+	"error": {
+		"message": error.errorMessage,
+		"description": error.description,
+		"detailedDescription": error.detailedDescription,
+		"errorType": {
+			"identifier": error.errorType.identifier,
+			"namespace": error.errorType.namespace	
+		}
+	}
+}
+]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+			</on-error-propagate>
+		</error-handler>
+	</flow>	
+	
+	</mule>

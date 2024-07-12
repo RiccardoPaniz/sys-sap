@@ -1,0 +1,51 @@
+api:
+  id:            "1323493"
+  port:          "8082"
+  client:
+    id:     "3b1497661dcf4ed0a28032818aa85348"
+    secret: "C73d158FB2eD45b5aA8113aca57F1752"
+    
+  system:
+    tracing:
+      host: "alia-sys-tracing-uat.de-c1.eu1.cloudhub.io"
+      port: "443"
+      protocol: "HTTPS"
+      base-path: "/"
+      reconnection:
+        frequency: "2000"
+        attempts: "2"
+      resource-path:
+        create-log-sap-operandi-in: "/api/log-sap-operandi-in"
+        create-log-sap-operandi-up: "/api/log-sap-operandi-up"
+      response-timeout: "180000"
+
+sap:
+  connection:
+    username: "SER_INT_MULE"
+    password: "Iniziale1"
+    service-base-url: "https://wd-hec-qly.aliaserviziambientali.it"
+    client:
+#      id: "INT_MULESOFT"
+#      secret: "foWtbCQZlNluz{~bnSUjcB</}eSaiDHpi/yaK9b{"
+      id: "INT_MULE_ISU"
+      secret: "Jr@rhCG(Swu-o6kxeyzWViY~gUnWYtb(RPKEXnUz"
+    tokenEndpoint: "https://wd-hec-qly.aliaserviziambientali.it/sap/bc/sec/oauth2/token"
+    scopes: "/IWFND/SG_MED_CATALOG_0002 ZAPI_BUSINESS_PARTNER_0001 ZAPI_BUSINESS_PARTNER_RELATION_SRV_0001 ZERP_ISU_CONNOBJ_SRV_0001 ZERP_ISU_CONTAINER_SRV_0001 ZERP_ISU_CONTRACT_EVASIONE_SRV_0001 ZERP_ISU_DB_FAMIGLIA_SRV_0001 ZERP_ISU_DEVLOC_SRV_0001 ZERP_ISU_EVBS_CATTIA_SRV_0001 ZERP_ISU_EVER_ACC_SRV_0001 ZERP_ISU_LOCK_SRV_0001 ZERP_ISU_MATRICOLA_SRV_0001 ZERP_ISU_MD_PROP_SRV_0001 ZERP_ISU_OPERAND_CHANGE_SRV_0001 ZERP_ISU_UMC_SRV_0001 ZESTRATTORE_PIANI_RATA_SRV_01_0001 ZESTRATTORE_SOLLECITI_SRV_0001 ZESTRATTO_CONTO_SRV_0001 ZAPI_BUSINESS_PARTNER_SRV_0001 ZERP_ISU_OPERAND_SRV_0001 ZAPI_BUSINESS_PARTNER_EXTEND_SRV_0001 ZERP_ISU_STRADARIO_SRV_0001 ZCDS_PREMCATT_CDS_0001 ZERP_ISU_STORNI_SRV_0001 ZERP_ISU_ZRF_RMOUT_SRV_0001 ZERP_ISU_PERIODO_SANZIONABILE_SRV_0001 ZER_CIGCUP_CODUNI_SRV_0001 ZERP_TRASFER_PARTITE_SRV_0001 ZVIRTUALIZZAZIONE_INDIRIZZO_SRV_0001 ZERP_ISU_RF_MGVIRT_SRV_0001"
+
+    response-timeout: "600"
+    connection-timeout: "60"
+    reconnection:
+      frequency: "2000"
+      attempts: "2"
+  customer-code: "1410"
+
+tls:
+  keystore:
+    type:         "pkcs12"
+    path:         "keystore/keystore.pfx"
+    alias:        "mule"
+    password:     "password"
+    keyPassword:  "password"
+
+https:
+  port: "8094"

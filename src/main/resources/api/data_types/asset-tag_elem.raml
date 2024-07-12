@@ -1,0 +1,24 @@
+#%RAML 1.0 DataType 
+displayName: Asset Tag
+description: Request for Asset Tag requests
+type: object
+additionalProperties: true
+properties:
+  ALIA_ZMATR__c:
+    type: string
+    required: true
+  ALIA_ZTAG__c:
+    type: string
+    required: true
+  ALIA_AB__c:
+    type: string
+    required: false
+  ALIA_Bis__c:
+    type: string
+    required: false
+  AccountID:
+    type: string
+    required: false
+  ALIA_EQUNR__c:
+    type: string
+    required: true

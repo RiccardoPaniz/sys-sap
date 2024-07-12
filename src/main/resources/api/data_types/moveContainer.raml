@@ -1,0 +1,19 @@
+#%RAML 1.0 DataType 
+displayName: Move Container
+description: Response for Move Container requests
+type: object
+additionalProperties: true
+properties:
+  status:
+    type: !include status.raml
+    required: false
+    description: Status
+    displayName: Status
+  recordList:
+    type: array
+    items: !include moveContainer_elem.raml
+    required: false
+    description: List of Move Container
+    displayName: List of Move Container
+
+

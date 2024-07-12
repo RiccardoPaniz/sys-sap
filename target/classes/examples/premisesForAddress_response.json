@@ -1,0 +1,17 @@
+{
+	"connObjId": "122222",
+	"premisesList": [
+		{
+			"premiseId": "12345",
+			"foglio": "12345",
+			"particella": "12345",
+			"subalterno": "12345",
+			"installationList": [
+				{
+					"installationId": "40002345",
+					"street": "XX"
+				}
+			]
+		}
+	]
+}

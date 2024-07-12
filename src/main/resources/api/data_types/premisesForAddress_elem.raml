@@ -1,0 +1,42 @@
+#%RAML 1.0 DataType
+displayName: Premises For Address Elem
+description: Element of Premises For Address list
+type: object
+additionalProperties: true
+properties:
+  connObjId: 
+    type: string
+    required: true
+    description: "Oggetto di allacciamento"
+    displayName: "Oggetto di allacciamento"
+    example: "8000000006"
+  premiseId: 
+    type: string
+    required: true
+    description: "Edificio"
+    displayName: "Edificio"
+    example: "7000000003"
+  foglio: 
+    type: string
+    required: true
+    description: "Dati catastali - Foglio"
+    displayName: "Dati catastali - Foglio"
+    example: "A"
+  particella: 
+    type: string
+    required: true
+    description: "Dati catastali - Particella"
+    displayName: "Dati catastali - Particella"
+    example: "129"
+  subalterno: 
+    type: string
+    required: true
+    description: "Dati catastali - Subalterno"
+    displayName: "Dati catastali - Subalterno"
+    example: "1A"
+  installationList:
+    type: array
+    items: !include installation_elem.raml
+    required: true
+    description: List of installation
+    displayName: List of installation   

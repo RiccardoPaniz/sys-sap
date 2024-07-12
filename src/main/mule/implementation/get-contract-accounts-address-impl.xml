@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:s4hana="http://www.mulesoft.org/schema/mule/s4hana"
+	xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s4hana/current/mule-s4hana.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd">
+	<flow name="get-contract-accounts-address-implFlow" doc:id="15f7948d-0f51-40da-aac7-f4c4bd580afd" >
+		<ee:transform doc:name="Get Contract Accounts Address Request Transformation" doc:id="a0821bec-ce42-4c85-b4b2-69935339fa86" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output text/plain
+
+var contractAccountOldKey = "ContoContrattuale eq '" ++ vars.contractAccountOldKey ++ "'"
+var addressType = " and Tipoindirizzo eq '" ++ upper(vars.addressType) ++ "'"
+---
+contractAccountOldKey ++ addressType]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="a02cd8bb-c5cf-46f4-8799-eb608b7dd9f4" message="Contract Accounts Address by filter: #[payload]"/>
+		<s4hana:query doc:name="Get Contract Accounts Address" doc:id="cc507177-ecd0-4865-b298-4b05b924dbcd" config-ref="SAP_S_4HANA_Config" service="ZVIRTUALIZZAZIONE_INDIRIZZO_SRV" entityType="ZCDS_VIRTUAL_INDSOLL" filter="#[payload]" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS">
+			<reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+		</s4hana:query>
+		<ee:transform doc:name="Get Contract Accounts Address Response Transformation" doc:id="2f3e0179-8cb3-40d7-b092-2e264a7f8e22" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json skipNullOn="everywhere"
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="0b8d473e-e853-4c8c-bb2b-ec1e972466bf" message="Contract Accounts Address got: #[payload]"/>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="4b0fa16d-d022-42dc-8ccf-8abffb749114" type="S4HANA:INVALID_ENTITY" when='lower(error.description) contains "nessun indirizzo presente per il contocontrattuale indicato"'>
+				<logger level="WARN" doc:name="Logger" doc:id="ec9cffa5-4354-429c-8ab4-cfa52b32e6ef" message="No Contract Accounts found for the contractAccount #[vars.contractAccountOldKey]"/>
+				<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;[]]" doc:name="Empty array" doc:id="275a1f36-cd5a-4ee3-9756-9b8ae43ddd26" />
+			</on-error-continue>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="4e40547b-3f51-489f-9138-4c6b863c18cb" type="ANY">
+				<logger level="ERROR" doc:name="Logger" doc:id="eb21cc40-a087-42a1-9849-83a358544c1b" message="Error retrieving Contract Accounts"/>
+				<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;error.description]" doc:name="Set Payload" doc:id="eb0566c1-8242-4d72-ba33-e391db1bfd2d" />
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

@@ -1,0 +1,12 @@
+#%RAML 1.0 DataType
+displayName: Address Phone Number
+description: Address Phone Number Data Type
+type: object
+additionalProperties: false
+properties:
+  phoneNumber1:
+    type: !include phoneNumber.raml
+    required: false
+  phoneNumber2:
+    type: !include phoneNumber.raml
+    required: false

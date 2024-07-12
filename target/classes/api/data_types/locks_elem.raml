@@ -1,0 +1,66 @@
+#%RAML 1.0 DataType
+displayName: Locks Elem
+description: Element of Locks list
+type: object
+additionalProperties: true
+properties:
+  contract_account:
+    type: string
+    required: true
+    description: Conto contr. (Vkont)
+    displayName: Conto contr. (Vkont)
+    example: "854915"
+  business_partner:
+    type: string
+    required: true
+    description: Bus. partner (Gpart)
+    displayName: Bus. partner (Gpart)
+    example: "738293"
+  contract_id:
+    type: string
+    required: true
+    description: Contratto (Vertrag)
+    displayName: Contratto (Vertrag)
+    example: "738293"
+  alia_docnum__c:
+    type: string
+    required: false
+    description: Riferimento (DocNum)
+    displayName: Riferimento (DocNum)
+    example: "854915"
+  alia_abrsperr__c:
+    type: string
+    required: false
+    description: Motivo bl.calc. (Abrsperr)
+    displayName: Motivo bl.calc. (Abrsperr)
+    example: "854915"
+  alia_lotyp__c:
+    type: string
+    required: false
+    description: Tipo bl. (Lotyp)
+    displayName: Tipo bl. (Lotyp)
+    example: "854915"
+  alia_proid__c:
+    type: string
+    required: false
+    description: Processo (Proid)
+    displayName: Processo (Proid)
+    example: "854915"
+  alia_lockr__c:
+    type: string
+    required: false
+    description: Motivo blocco (Lockr)
+    displayName: Motivo blocco (Lockr)
+    example: "854915"
+  alia_lockr_startdate__c:
+    type: string
+    required: false
+    description: Data inizio blocco (Fdate)
+    displayName: Data inizio blocco (Fdate)
+    example: "2020-11-12"
+  alia_lockr_enddate__c:
+    type: string
+    required: false
+    description: Data fine blocco (Tdate)       
+    displayName: Data fine blocco (Tdate)      
+    example: "2021-10-21"

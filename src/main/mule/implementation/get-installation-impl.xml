@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:s4hana="http://www.mulesoft.org/schema/mule/s4hana"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/s4hana http://www.mulesoft.org/schema/mule/s4hana/current/mule-s4hana.xsd">
+	<flow name="get-installation-implFlow" doc:id="eea65090-0247-48f2-8259-6f70e7ef9933" >
+	<ee:transform doc:name="Get Installations from PremiseId List" doc:id="69b60b18-a2ff-4750-b27b-a9a63cc24880">
+					<ee:message>
+						<ee:set-payload><![CDATA[%dw 2.0
+output application/java
+---
+"PremiseID eq '" ++ attributes.queryParams.PremiseID ++ "'"]]></ee:set-payload>
+					</ee:message>
+				</ee:transform>
+				<logger level="INFO" doc:name="Logger" doc:id="29055323-6bc1-4887-a031-289a9d0cb9e6" message='#["Get Installation by filter: " ++ payload]'/>
+				<s4hana:query doc:name="Get Installations" doc:id="82afd609-a123-4390-8362-f3bf116b4608" responseTimeout="${sap.connection.response-timeout}" responseTimeoutUnit="SECONDS" config-ref="SAP_S_4HANA_Config" service="ZERP_ISU_UMC_SRV" filter="#[payload]" entityType="Installations">
+					<reconnect frequency="${sap.connection.reconnection.frequency}" count="${sap.connection.reconnection.attempts}"/>
+				</s4hana:query>
+		<ee:transform doc:name="Transform Message" doc:id="faf5eb75-9668-44f8-85ad-718ca80fbb1c" >
+			<ee:message >
+				<ee:set-payload ><![CDATA[%dw 2.0
+output application/json
+---
+payload]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<error-handler >
+			<on-error-continue enableNotifications="true" logException="true" doc:name="On Error Continue" doc:id="b2ea1267-e0f2-4505-9890-d34d80b7fdb6" type="S4HANA:INVALID_ENTITY" when='error.description contains "Nessun dato trovato"'>
+				<logger level="WARN" doc:name="Logger" doc:id="7793eeec-77db-44fe-8425-b6f72ee9322f" message="Installation not found"/>
+				<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;[]]" doc:name="Empty array" doc:id="57d5a4e2-eafb-492e-8159-e8612daa16b6" />
+			</on-error-continue>
+			<on-error-propagate enableNotifications="true" logException="true" doc:name="On Error Propagate" doc:id="6abefb1c-6faa-4947-a9c7-871afc6bb1ce" type="ANY">
+				<logger level="ERROR" doc:name="Logger" doc:id="c5b07bdb-94e8-4fe9-9322-f342b9fd629a" message="Error retrieving Installation"/>
+				<set-payload value="#[%dw 2.0&#10;output application/json&#10;---&#10;error.errorMessage.payload]" doc:name="Set Payload" doc:id="215eb6c4-07d3-4b97-a824-24dc7f446350" />
+			</on-error-propagate>
+		</error-handler>
+	</flow>
+</mule>

@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:munit-tools="http://www.mulesoft.org/schema/mule/munit-tools"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xsi:schemaLocation="
+		http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+		http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+		http://www.mulesoft.org/schema/mule/munit-tools  http://www.mulesoft.org/schema/mule/munit-tools/current/mule-munit-tools.xsd">
+	<munit:config name="alia-sys-sap-suite.xml" />
+	<munit:test name="patch:\businessPartners\(businessPartnerId):application\json:alia-sys-sap-config-test" doc:id="cd826056-883f-480f-b3a1-c8a033115e8e" >
+		<munit:behavior >
+			<munit:set-event doc:name="Set Input" doc:id="9a86e104-8e87-49dd-8d49-2716c539b413" >
+				<munit:payload value="#[output application/json  --- readUrl('classpath://patchbusinessPartnersbusinessPartnerIdapplicationjsonaliasyssapconfigtest/set-event_payload.dwl')]" encoding="UTF-8" mediaType="application/json " />
+				<munit:attributes value="#[readUrl('classpath://patchbusinessPartnersbusinessPartnerIdapplicationjsonaliasyssapconfigtest/set-event_attributes.dwl')]" />
+				<munit:variables >
+					<munit:variable key="outboundHeaders" value="#[readUrl('classpath://patchbusinessPartnersbusinessPartnerIdapplicationjsonaliasyssapconfigtest/set-event_variable_.dwl')]" />
+				</munit:variables>
+			</munit:set-event>
+		</munit:behavior>
+		<munit:execution >
+			<flow-ref doc:name="Flow-ref to patch:\businessPartners\(businessPartnerId):application\json:alia-sys-sap-config" doc:id="c70cea16-2651-48b9-816a-9294b8f9e1e2" name="patch:\businessPartners\(businessPartnerId):application\json:alia-sys-sap-config"/>
+		</munit:execution>
+		<munit:validation >
+			<munit-tools:assert doc:name="Assert payload" doc:id="a8ab91b4-fcd3-4225-af11-ba27a1dcec7d" message="The payload does not match">
+				<munit-tools:that ><![CDATA[#[%dw 2.0
+import patchbusinessPartnersbusinessPartnerIdapplicationjsonaliasyssapconfigtest::assert_expression_payload
+---
+assert_expression_payload::main({payload: payload, attributes: attributes, vars: vars})]]]></munit-tools:that>
+			</munit-tools:assert>
+		</munit:validation>
+	</munit:test>
+
+</mule>

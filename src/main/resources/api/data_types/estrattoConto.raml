@@ -1,0 +1,17 @@
+#%RAML 1.0 DataType
+displayName: Estratto Conto
+description: Response for Estratto Conto requests
+type: object
+additionalProperties: true
+properties:
+  status:
+    type: !include status.raml
+    required: false
+    description: Status
+    displayName: Status
+  recordList:
+    type: array
+    items: !include estrattoConto_elem.raml
+    required: false
+    description: List of Document
+    displayName: List of Document
