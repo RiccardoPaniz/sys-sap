@@ -38,6 +38,6 @@ payload
 ]]></ee:set-payload>
 			</ee:message>
 		</ee:transform>
-		<logger level="INFO" doc:name="Logger" doc:id="0edc2b05-82b1-470f-b8bb-d4862b4dea16" message="Asset Tag successfully created  - #[payload]"/>
+		<logger level="INFO" doc:name="Asset Tag successfully created" doc:id="0edc2b05-82b1-470f-b8bb-d4862b4dea16" message="Asset Tag successfully created  - #[payload]"/>
 	</flow>
 </mule>
